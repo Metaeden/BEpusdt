@@ -37,6 +37,10 @@ const state = {
   countdownTimer: null,
   expiresAt: 0,
   paidClicked: false,
+  // 支付方式选择（订单尚未确定 trade_type 时）
+  methods: [],
+  selCurrency: '',
+  selMethod: null,
 };
 
 /* ------------------------------------------------------------------ */
@@ -79,6 +83,13 @@ const STRINGS = {
     amountChanged: '支付金额已更新，请重新确认',
     poweredBy: 'Powered by',
     walletDetected: '检测到',
+    currency: '币种',
+    networkLabel: '网络',
+    selectHint: '选择支付方式',
+    selectWarn: '请确认收款网络与您钱包中的网络一致，选错网络将无法到账',
+    continuePay: '继续支付',
+    selectFailed: '加载支付方式失败',
+    selectRetry: '请重新选择支付方式',
   },
   en: {
     loading: 'Loading order…',
@@ -115,6 +126,13 @@ const STRINGS = {
     amountChanged: 'Payment amount updated, please review again',
     poweredBy: 'Powered by',
     walletDetected: 'Detected',
+    currency: 'Currency',
+    networkLabel: 'Network',
+    selectHint: 'Choose how to pay',
+    selectWarn: 'Make sure the network matches your wallet. Sending on another network will not be credited.',
+    continuePay: 'Continue to pay',
+    selectFailed: 'Failed to load payment methods',
+    selectRetry: 'Please choose a payment method again',
   },
 };
 
@@ -162,13 +180,21 @@ async function payInfo(tradeId) {
 /* ------------------------------------------------------------------ */
 
 function showOnly(id) {
-  for (const s of ['stateLoading', 'stateError', 'statePay', 'stateConfirming', 'stateSuccess', 'stateClosed']) {
+  const states = ['stateLoading', 'stateError', 'stateSelect', 'statePay', 'stateConfirming', 'stateSuccess', 'stateClosed'];
+  for (const s of states) {
     const el = $(s);
     if (el) el.hidden = s !== id;
   }
 }
 
 function renderOrder(order) {
+  // 新订单尚未确定支付方式：先让用户选币种 + 网络
+  if (!order.trade_type) {
+    state.order = order;
+    showSelect(order);
+    return;
+  }
+
   const trade = resolveOrder(order);
   state.order = order;
   state.trade = trade;
@@ -204,6 +230,143 @@ function renderOrder(order) {
   }
 
   schedulePoll(order.status);
+}
+
+/* ------------------------------------------------------------------ */
+/* 支付方式选择                                                        */
+/* ------------------------------------------------------------------ */
+
+async function payMethods(tradeId) {
+  const res = await fetch('/api/v1/pay/methods', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ trade_id: tradeId }),
+  });
+  const json = await res.json();
+  if (!json || json.status_code !== 200 || !json.data) {
+    throw new Error((json && json.message) || 'failed to load methods');
+  }
+  return json.data;
+}
+
+async function showSelect(order) {
+  showOnly('stateSelect');
+  $('selectFiat').textContent = `${order.money} ${order.fiat}`;
+  $('selectOrderNo').textContent = order.order_id;
+  startCountdown(order.expired_at);
+
+  const curBox = $('currencyChips');
+  const netBox = $('networkChips');
+  const btn = $('selectPayBtn');
+  btn.disabled = true;
+
+  try {
+    const data = await payMethods(order.trade_id);
+    state.methods = Array.isArray(data.methods) ? data.methods : [];
+  } catch (e) {
+    const st = $('selectStatus');
+    st.textContent = t('selectFailed') + (e.message ? ': ' + e.message : '');
+    st.hidden = false;
+    return;
+  }
+
+  if (!state.methods.length) {
+    const st = $('selectStatus');
+    st.textContent = t('selectFailed');
+    st.hidden = false;
+    return;
+  }
+
+  // 币种去重
+  const currencies = [...new Set(state.methods.map((m) => m.currency))];
+  state.selCurrency = currencies[0];
+  state.selMethod = null;
+
+  const renderCurrencies = () => {
+    curBox.innerHTML = '';
+    for (const c of currencies) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.setAttribute('role', 'radio');
+      chip.setAttribute('aria-checked', String(c === state.selCurrency));
+      chip.textContent = c;
+      chip.addEventListener('click', () => {
+        state.selCurrency = c;
+        state.selMethod = null;
+        btn.disabled = true;
+        renderCurrencies();
+        renderNetworks();
+      });
+      curBox.appendChild(chip);
+    }
+  };
+
+  const renderNetworks = () => {
+    netBox.innerHTML = '';
+    const items = state.methods.filter((m) => m.currency === state.selCurrency);
+    for (const m of items) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.setAttribute('role', 'radio');
+      chip.setAttribute('aria-checked', String(state.selMethod === m));
+      chip.innerHTML = '';
+      const label = document.createElement('span');
+      label.textContent = (m.token_net_name || m.network).toUpperCase();
+      chip.appendChild(label);
+      if (m.actual_amount) {
+        const sub = document.createElement('span');
+        sub.className = 'chip-sub';
+        sub.textContent = `${m.actual_amount} ${m.currency}`;
+        chip.appendChild(sub);
+      }
+      chip.addEventListener('click', () => {
+        state.selMethod = m;
+        btn.disabled = false;
+        renderNetworks();
+      });
+      netBox.appendChild(chip);
+    }
+  };
+
+  renderCurrencies();
+  renderNetworks();
+
+  btn.onclick = () => createTransaction(btn);
+}
+
+async function createTransaction(btn) {
+  const method = state.selMethod;
+  if (!method) return;
+
+  const st = $('selectStatus');
+  st.hidden = true;
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/v1/pay/update-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        trade_id: state.tradeId,
+        currency: method.currency,
+        network: method.network,
+      }),
+    });
+    const json = await res.json();
+    if (!json || json.status_code !== 200 || !json.data || !json.data.trade_id) {
+      throw new Error((json && json.message) || 'failed to create transaction');
+    }
+
+    // 服务端会重建订单并生成新的 trade_id，跳转到新收银台
+    const next = json.data.trade_id;
+    window.location.href = `/pay/checkout/${encodeURIComponent(next)}`;
+  } catch (e) {
+    st.textContent = `${t('selectRetry')}${e.message ? ': ' + e.message : ''}`;
+    st.hidden = false;
+    btn.disabled = false;
+  }
 }
 
 function setupPayment(order, trade) {
@@ -368,24 +531,29 @@ function startCountdown(expiredAt) {
 }
 
 function updateCountdown() {
-  const el = $('timerValue');
-  const wrap = $('timer');
-  if (!el || !state.expiresAt) return;
+  if (!state.expiresAt) return;
 
-  const ms = state.expiresAt - Date.now();
-  if (ms <= 0) {
-    el.textContent = '00:00';
-    wrap.classList.add('is-urgent');
-    return;
+  // 选择页与支付页各有一套倒计时元素，同时更新
+  for (const [elId, wrapId] of [['timerValue', 'timer'], ['selectTimerValue', 'selectTimer']]) {
+    const el = $(elId);
+    const wrap = $(wrapId);
+    if (!el) continue;
+
+    const ms = state.expiresAt - Date.now();
+    if (ms <= 0) {
+      el.textContent = '00:00';
+      if (wrap) wrap.classList.add('is-urgent');
+      continue;
+    }
+    const total = Math.floor(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    el.textContent = h > 0
+      ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    if (wrap) wrap.classList.toggle('is-urgent', ms < 5 * 60 * 1000);
   }
-  const total = Math.floor(ms / 1000);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  el.textContent = h > 0
-    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-    : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  wrap.classList.toggle('is-urgent', ms < 5 * 60 * 1000);
 }
 
 /* ------------------------------------------------------------------ */
@@ -496,7 +664,8 @@ async function boot() {
   });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && state.order) {
+    // 选择页由 update-order 跳转推进，不参与轮询
+    if (document.visibilityState === 'visible' && state.order && state.order.trade_type) {
       pollOnce();
     }
   });

@@ -24,6 +24,49 @@
             <p class="muted" id="errorMessage"></p>
         </section>
 
+        <!-- 选择支付方式（新订单尚未确定 trade_type 时显示） -->
+        <section id="stateSelect" hidden>
+            <header class="head">
+                <div class="brand">
+                    <span class="brand-dot"></span>
+                    <span data-i18n="brand">OneClick Pay</span>
+                </div>
+                <div class="timer" id="selectTimer" aria-live="polite">
+                    <span class="timer-label" data-i18n="timeLeft">剩余</span>
+                    <span class="timer-value" id="selectTimerValue">--:--</span>
+                </div>
+            </header>
+
+            <div class="amount-block">
+                <div class="amount-fiat" id="selectFiat"></div>
+                <div class="network-pill"><span data-i18n="selectHint">选择支付方式</span></div>
+            </div>
+
+            <div class="method-group">
+                <label class="method-label" data-i18n="currency">币种</label>
+                <div class="chips" id="currencyChips" role="radiogroup"></div>
+            </div>
+
+            <div class="method-group">
+                <label class="method-label" data-i18n="networkLabel">网络</label>
+                <div class="chips" id="networkChips" role="radiogroup"></div>
+            </div>
+
+            <div class="warning">
+                <span class="warning-icon">!</span>
+                <span data-i18n="selectWarn">请确认收款网络与您钱包中的网络一致，选错网络将无法到账</span>
+            </div>
+
+            <button class="btn primary" id="selectPayBtn" disabled>
+                <span data-i18n="continuePay">继续支付</span>
+            </button>
+            <p class="status" id="selectStatus" hidden></p>
+
+            <dl class="meta">
+                <div><dt data-i18n="orderNo">订单号</dt><dd id="selectOrderNo">--</dd></div>
+            </dl>
+        </section>
+
         <!-- 主支付面板 -->
         <section id="statePay" hidden>
             <header class="head">
