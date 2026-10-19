@@ -57,6 +57,8 @@ const STRINGS = {
     exactAmountHint: '请务必精确支付此金额，多付或少付都会导致无法自动到账',
     payWithWallet: '一键支付',
     scanHint: '使用钱包 App 扫码支付',
+    scanAddressHint: '扫码识别收款地址，转账时请手动输入精确金额',
+    reselect: '更换支付方式',
     address: '收款地址',
     amount: '金额',
     copy: '复制',
@@ -103,6 +105,8 @@ const STRINGS = {
     exactAmountHint: 'Please pay the exact amount. Over- or underpayment cannot be credited automatically.',
     payWithWallet: 'Pay with wallet',
     scanHint: 'Scan with your wallet app',
+    scanAddressHint: 'Scan to fill the receiving address, then enter the exact amount manually',
+    reselect: 'Change payment method',
     address: 'Receiving address',
     amount: 'Amount',
     copy: 'Copy',
@@ -245,6 +249,8 @@ function renderOrder(order) {
     showClosed(order.status);
   } else {
     showOnly('statePay');
+    // 待付且后端允许重选时，提供「更换支付方式」入口
+    $('reselectBtn').hidden = !order.reselect;
   }
 
   schedulePoll(order.status);
@@ -455,13 +461,16 @@ function setupPayment(order, trade) {
     label: 'OneClick Pay',
   });
 
-  // 二维码
+  // 二维码：有标准 URI 用 URI；无标准的链（Tron/Aptos）退化为纯地址二维码，
+  // 钱包 App 扫码可识别收款方，金额需手动输入（精确金额见下方提示与复制区）
   const qrBlock = $('qrBlock');
   const qrFrame = $('qrFrame');
-  if (uri) {
+  const qrData = uri || (kind === 'address-only' && order.token ? order.token : null);
+  if (qrData) {
     try {
-      qrFrame.innerHTML = qrSvg(uri, { margin: 2 });
+      qrFrame.innerHTML = qrSvg(qrData, { margin: 2 });
       qrBlock.hidden = false;
+      $('qrHint').textContent = uri ? t('scanHint') : t('scanAddressHint');
     } catch (e) {
       console.error('QR generation failed', e);
       qrBlock.hidden = true;
@@ -751,6 +760,10 @@ async function boot() {
   $('paidBtn').addEventListener('click', () => {
     state.paidClicked = true;
     pollOnce();
+  });
+  $('reselectBtn').addEventListener('click', () => {
+    // 返回支付方式选择页；后端对 waiting 订单允许重新 update-order
+    if (state.order && state.order.reselect) showSelect(state.order);
   });
 
   document.addEventListener('visibilitychange', () => {

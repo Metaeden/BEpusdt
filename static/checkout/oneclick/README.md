@@ -59,10 +59,12 @@ cd assets/js && node --test
 | 链 | 桌面 | 移动 |
 |---|---|---|
 | Ethereum / BSC / Polygon / Arbitrum / Base / X Layer / Plasma | EIP-1193 插件 | EIP-681 扫码 |
-| Tron | TronLink | 复制地址（无统一扫码标准） |
+| Tron | TronLink | 纯地址扫码（金额手动输入）/ 复制 |
 | Solana | Phantom / Solflare | Solana Pay 扫码 |
 | TON | TON Connect（需在宿主页初始化 `window.tonConnectUI`） | `ton://` 深链 |
-| Aptos | — | 复制地址 |
+| Aptos | — | 纯地址扫码 / 复制 |
+
+> 待付订单支持「更换支付方式」：支付页网络徽标下方有入口，返回选择页重新选币种/网络（后端 `reselect` 为 true 时显示）。
 
 > Solana / TON 的插件直连需要可选的 vendor SDK（`assets/vendor/solana-web3.js`、`spl-token.js`、`ton-core.js`）。缺失时会自动降级为唤起钱包 App 的标准 URI，不会报错。
 
@@ -100,6 +102,6 @@ cd assets/js && node --test
 
 ## 已知限制
 
-- Tron 无统一扫码标准，移动端只能复制地址与金额
+- Tron / Aptos 无统一扫码支付标准：二维码为纯收款地址，钱包识别后需手动输入精确金额（页面有醒目提示）
 - TON Jetton 转账的 `forward_ton_amount` 需用真实钱包实测后再启用（当前实现按 0.01 TON 预填）
 - 确认数展示依赖 BEpusdt 返回的订单状态，模板本身不查链上确认深度

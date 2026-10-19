@@ -113,6 +113,16 @@ html, body {
 }
 .order-hero .network-pill { margin-top: 12px; }
 
+/* 更换支付方式：hero 内的小文本按钮 */
+.reselect-link {
+  margin-top: 10px; padding: 0;
+  background: none; border: none;
+  color: var(--muted); font: inherit; font-size: 12px;
+  text-decoration: underline; text-underline-offset: 3px;
+  cursor: pointer;
+}
+.reselect-link:hover { color: var(--brand); }
+
 .network-pill {
   display: inline-flex; align-items: center; gap: 6px;
   margin-top: 12px; padding: 5px 11px;
