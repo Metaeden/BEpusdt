@@ -88,6 +88,8 @@ cd assets/js && node --test
 `contract` / `decimals` / `chain_id` / `explorer_fmt` 由服务端下发后，新增链或更换合约无需改模板。
 旧版服务端缺少这些字段时，模板自动回退到内置链表（`assets/js/chains.js`），仍可正常使用。
 
+`/api/v1/pay/methods` 返回的 `network_sort`（后台「网络顺序」配置，逗号分隔）会被用于网络卡片的展示排序；未配置时保持后端默认顺序。选择页不预选网络，付款人显式点选后才能继续，避免选错网络。
+
 `tx_hash` 用于在确认中/成功页展示区块浏览器链接；未支付时为空，不会出现死链。
 
 ## 安全

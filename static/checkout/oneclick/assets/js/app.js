@@ -39,6 +39,7 @@ const state = {
   paidClicked: false,
   // 支付方式选择（订单尚未确定 trade_type 时）
   methods: [],
+  networkSort: '',
   selCurrency: '',
   selMethod: null,
 };
@@ -85,7 +86,10 @@ const STRINGS = {
     walletDetected: '检测到',
     currency: '币种',
     networkLabel: '网络',
+    amountDue: '应付金额',
     selectHint: '选择支付方式',
+    currencyNote: '选择您要支付的币种',
+    networkNote: '务必与钱包网络一致',
     selectWarn: '请确认收款网络与您钱包中的网络一致，选错网络将无法到账',
     continuePay: '继续支付',
     selectFailed: '加载支付方式失败',
@@ -128,7 +132,10 @@ const STRINGS = {
     walletDetected: 'Detected',
     currency: 'Currency',
     networkLabel: 'Network',
+    amountDue: 'Amount due',
     selectHint: 'Choose how to pay',
+    currencyNote: 'Pick the coin you want to pay with',
+    networkNote: 'Must match your wallet network',
     selectWarn: 'Make sure the network matches your wallet. Sending on another network will not be credited.',
     continuePay: 'Continue to pay',
     selectFailed: 'Failed to load payment methods',
@@ -202,9 +209,20 @@ function renderOrder(order) {
   $('amountCrypto').textContent = order.actual_amount;
   $('amountSymbol').textContent = trade ? trade.crypto : '';
   $('amountFiat').textContent = `${order.money} ${order.fiat}`;
-  $('networkPill').textContent = order.network
+  const netLabel = order.network
     ? `${order.network.alias || order.network.name}`
     : (trade ? trade.chain.name : '');
+  const pill = $('networkPill');
+  pill.innerHTML = '';
+  const pillIcon = networkIcon(order.network ? order.network.network : (trade ? trade.chainKey : ''));
+  if (pillIcon) {
+    const img = document.createElement('img');
+    img.src = pillIcon;
+    img.alt = '';
+    img.width = 16; img.height = 16;
+    pill.appendChild(img);
+  }
+  pill.appendChild(document.createTextNode(netLabel));
   $('addressText').textContent = order.token;
   $('amountText').textContent = order.actual_amount;
   $('orderNo').textContent = order.order_id;
@@ -249,20 +267,31 @@ async function payMethods(tradeId) {
   return json.data;
 }
 
+/** 网络图标：优先本地 SVG，缺失时返回 null 由 UI 画首字母圆标 */
+const ICON_NETWORKS = ['aptos', 'arbitrum', 'base', 'bsc', 'ethereum', 'plasma', 'polygon', 'solana', 'ton', 'tron', 'xlayer'];
+function networkIcon(network) {
+  const key = String(network || '').toLowerCase();
+  return ICON_NETWORKS.includes(key) ? `/checkout/oneclick/assets/icons/${key}.svg` : null;
+}
+
 async function showSelect(order) {
   showOnly('stateSelect');
   $('selectFiat').textContent = `${order.money} ${order.fiat}`;
   $('selectOrderNo').textContent = order.order_id;
+  $('selectCryptoHint').textContent = t('selectHint');
   startCountdown(order.expired_at);
 
   const curBox = $('currencyChips');
   const netBox = $('networkChips');
   const btn = $('selectPayBtn');
+  const btnLabel = $('selectBtnLabel');
   btn.disabled = true;
+  btnLabel.textContent = t('continuePay');
 
   try {
     const data = await payMethods(order.trade_id);
     state.methods = Array.isArray(data.methods) ? data.methods : [];
+    state.networkSort = String(data.network_sort || '');
   } catch (e) {
     const st = $('selectStatus');
     st.textContent = t('selectFailed') + (e.message ? ': ' + e.message : '');
@@ -282,6 +311,35 @@ async function showSelect(order) {
   state.selCurrency = currencies[0];
   state.selMethod = null;
 
+  // 商户配置的网络排序（逗号分隔）优先，未配置保持后端默认顺序
+  const sortList = state.networkSort
+    ? state.networkSort.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+  const sortRank = (m) => {
+    const i = sortList.indexOf(m.network);
+    return i === -1 ? sortList.length : i;
+  };
+  const inOrder = (list) => (sortList.length ? [...list].sort((a, b) => sortRank(a) - sortRank(b)) : list);
+
+  const defaultFor = (cur) => inOrder(state.methods.filter((m) => m.currency === cur))[0] || null;
+
+  const syncHero = () => {
+    if (state.selMethod) {
+      $('selectCryptoHint').textContent =
+        `${state.selMethod.actual_amount} ${state.selMethod.currency} · ${state.selMethod.token_net_name || state.selMethod.network}`;
+    } else {
+      $('selectCryptoHint').textContent = t('selectHint');
+    }
+  };
+
+  const syncBtn = () => {
+    btn.disabled = !state.selMethod;
+    btnLabel.textContent = state.selMethod
+      ? `${t('continuePay')} · ${state.selMethod.actual_amount} ${state.selMethod.currency}`
+      : t('continuePay');
+    syncHero();
+  };
+
   const renderCurrencies = () => {
     curBox.innerHTML = '';
     for (const c of currencies) {
@@ -293,10 +351,10 @@ async function showSelect(order) {
       chip.textContent = c;
       chip.addEventListener('click', () => {
         state.selCurrency = c;
-        state.selMethod = null;
-        btn.disabled = true;
+        state.selMethod = defaultFor(c);
         renderCurrencies();
         renderNetworks();
+        syncBtn();
       });
       curBox.appendChild(chip);
     }
@@ -304,34 +362,54 @@ async function showSelect(order) {
 
   const renderNetworks = () => {
     netBox.innerHTML = '';
-    const items = state.methods.filter((m) => m.currency === state.selCurrency);
+    const items = inOrder(state.methods.filter((m) => m.currency === state.selCurrency));
     for (const m of items) {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip';
-      chip.setAttribute('role', 'radio');
-      chip.setAttribute('aria-checked', String(state.selMethod === m));
-      chip.innerHTML = '';
-      const label = document.createElement('span');
-      label.textContent = (m.token_net_name || m.network).toUpperCase();
-      chip.appendChild(label);
-      if (m.actual_amount) {
-        const sub = document.createElement('span');
-        sub.className = 'chip-sub';
-        sub.textContent = `${m.actual_amount} ${m.currency}`;
-        chip.appendChild(sub);
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'net-card';
+      card.setAttribute('role', 'radio');
+      card.setAttribute('aria-checked', String(state.selMethod === m));
+
+      const icon = networkIcon(m.network);
+      const iconWrap = document.createElement('span');
+      iconWrap.className = 'net-icon';
+      if (icon) {
+        const img = document.createElement('img');
+        img.src = icon;
+        img.alt = '';
+        img.loading = 'lazy';
+        iconWrap.appendChild(img);
+      } else {
+        iconWrap.textContent = String(m.token_net_name || m.network).slice(0, 1).toUpperCase();
       }
-      chip.addEventListener('click', () => {
+
+      const body = document.createElement('span');
+      body.className = 'net-body';
+      const name = document.createElement('span');
+      name.className = 'net-name';
+      name.textContent = m.token_net_name || m.network;
+      const sub = document.createElement('span');
+      sub.className = 'net-sub';
+      sub.textContent = `${m.actual_amount} ${m.currency}`;
+      body.append(name, sub);
+
+      const mark = document.createElement('span');
+      mark.className = 'net-mark';
+      mark.setAttribute('aria-hidden', 'true');
+
+      card.append(iconWrap, body, mark);
+      card.addEventListener('click', () => {
         state.selMethod = m;
-        btn.disabled = false;
         renderNetworks();
+        syncBtn();
       });
-      netBox.appendChild(chip);
+      netBox.appendChild(card);
     }
   };
 
   renderCurrencies();
   renderNetworks();
+  syncBtn();
 
   btn.onclick = () => createTransaction(btn);
 }
@@ -525,9 +603,20 @@ function showError(message) {
 
 function startCountdown(expiredAt) {
   state.expiresAt = Number(expiredAt) * 1000;
+  state.expiredShown = false;
   updateCountdown();
   if (state.countdownTimer) clearInterval(state.countdownTimer);
   state.countdownTimer = setInterval(updateCountdown, 1000);
+}
+
+/** 倒计时归零：仅在待支付页面本地判定过期；确认中/成功等状态由轮询驱动 */
+function expiredTick() {
+  if (state.expiredShown) return;
+  const waiting = ['stateSelect', 'statePay'].some((id) => !$(id).hidden);
+  if (!waiting) return;
+  state.expiredShown = true;
+  if (state.countdownTimer) clearInterval(state.countdownTimer);
+  showClosed(STATUS.EXPIRED);
 }
 
 function updateCountdown() {
@@ -543,6 +632,7 @@ function updateCountdown() {
     if (ms <= 0) {
       el.textContent = '00:00';
       if (wrap) wrap.classList.add('is-urgent');
+      expiredTick();
       continue;
     }
     const total = Math.floor(ms / 1000);

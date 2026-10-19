@@ -107,14 +107,12 @@ html, body {
 
 /* ---------- 金额 ---------- */
 
-.amount-block { text-align: center; padding: 6px 0 4px; }
-.amount-crypto {
-  display: flex; align-items: baseline; justify-content: center; gap: 8px;
-  font-size: 34px; font-weight: 720; letter-spacing: -.02em;
-  font-variant-numeric: tabular-nums;
+/* 支付页 hero 内的币种符号（沿用选择页的 order-hero 视觉） */
+.order-hero-amount .amount-symbol {
+  font-size: 18px; font-weight: 600; color: var(--muted); margin-left: 2px;
 }
-.amount-symbol { font-size: 17px; font-weight: 600; color: var(--muted); }
-.amount-fiat { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.order-hero .network-pill { margin-top: 12px; }
+
 .network-pill {
   display: inline-flex; align-items: center; gap: 6px;
   margin-top: 12px; padding: 5px 11px;
@@ -137,32 +135,139 @@ html, body {
 
 /* ---------- 支付方式选择 ---------- */
 
-.method-group { margin-top: 18px; }
-.method-label {
-  display: block; margin-bottom: 8px;
-  color: var(--muted); font-size: 12.5px; font-weight: 600;
+/* 订单金额主视觉 */
+.order-hero {
+  margin: 2px 0 22px;
+  padding: 20px 18px 18px;
+  border-radius: 16px;
+  text-align: center;
+  background:
+    radial-gradient(120% 140% at 50% 0%, color-mix(in srgb, var(--brand) 12%, transparent), transparent 68%),
+    color-mix(in srgb, var(--bg) 70%, transparent);
+  border: 1px solid var(--line);
 }
+.order-hero-label {
+  margin: 0 0 6px;
+  color: var(--muted); font-size: 12px; font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.order-hero-amount {
+  font-size: 38px; font-weight: 750; letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.order-hero-sub {
+  margin: 8px 0 0;
+  color: var(--brand-strong); font-size: 13px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-height: 20px;
+}
+
+.method-group { margin-top: 20px; }
+.method-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  margin-bottom: 10px;
+}
+.method-label { color: var(--text); font-size: 13px; font-weight: 650; }
+.method-note { color: var(--muted); font-size: 11.5px; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 15px;
-  border: 1px solid var(--line); border-radius: 11px;
+  min-width: 68px; justify-content: center;
+  padding: 10px 16px;
+  border: 1.5px solid var(--line); border-radius: 11px;
   background: var(--card); color: var(--text);
-  font: inherit; font-size: 13.5px; font-weight: 600;
+  font: inherit; font-size: 13.5px; font-weight: 650;
   cursor: pointer;
-  transition: border-color .15s, background .15s, color .15s;
+  transition: border-color .15s, background .15s, color .15s, transform .08s;
 }
 .chip:hover { border-color: var(--brand); }
+.chip:active { transform: translateY(1px); }
 .chip[aria-checked="true"] {
   border-color: var(--brand);
   background: var(--brand-soft);
   color: var(--brand-strong);
 }
-.chip .chip-sub { color: var(--muted); font-weight: 500; font-size: 12px; }
-.chip[aria-checked="true"] .chip-sub { color: var(--brand-strong); }
-.chip:disabled { opacity: .5; cursor: not-allowed; }
+
+/* 网络卡片 */
+.net-list { display: grid; gap: 8px; }
+
+.net-card {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--line); border-radius: 13px;
+  background: var(--card); color: var(--text);
+  font: inherit; text-align: left;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .08s;
+}
+.net-card:hover { border-color: var(--brand); }
+.net-card:active { transform: translateY(1px); }
+.net-card[aria-checked="true"] {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 7%, var(--card));
+}
+
+.net-icon {
+  flex: none;
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  font-size: 15px; font-weight: 700; color: var(--muted);
+  overflow: hidden;
+}
+.net-icon img { width: 26px; height: 26px; display: block; }
+
+.net-body { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.net-name { font-size: 14px; font-weight: 650; }
+.net-sub {
+  color: var(--muted); font-size: 12.5px; font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.net-card[aria-checked="true"] .net-sub { color: var(--brand-strong); }
+
+.net-mark {
+  flex: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  position: relative;
+  transition: border-color .15s, background .15s;
+}
+.net-card[aria-checked="true"] .net-mark {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+.net-card[aria-checked="true"] .net-mark::after {
+  content: "";
+  position: absolute; inset: 0;
+  margin: auto;
+  width: 5px; height: 9px;
+  border: solid var(--card);
+  border-width: 0 2px 2px 0;
+  transform: translateY(-1px) rotate(45deg);
+}
+@media (prefers-color-scheme: dark) {
+  .net-card[aria-checked="true"] .net-mark::after { border-color: #0b0f17; }
+}
+
+.net-warn {
+  display: flex; align-items: flex-start; gap: 7px;
+  margin: 12px 0 0;
+  color: var(--muted); font-size: 11.5px; line-height: 1.5;
+}
+.net-warn::before {
+  content: "!";
+  flex: none;
+  width: 14px; height: 14px; margin-top: 2px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--warn-text) 16%, transparent);
+  color: var(--warn-text);
+  font-size: 10px; font-weight: 800; line-height: 14px; text-align: center;
+}
 
 #selectPayBtn { margin-top: 18px; }
 
@@ -275,5 +380,5 @@ html, body {
 /* 窄屏微调 */
 @media (max-width: 380px) {
   .card { padding: 18px 16px 14px; }
-  .amount-crypto { font-size: 30px; }
+  .order-hero-amount { font-size: 32px; }
 }

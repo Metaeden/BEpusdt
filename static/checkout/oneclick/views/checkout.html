@@ -37,28 +37,36 @@
                 </div>
             </header>
 
-            <div class="amount-block">
-                <div class="amount-fiat" id="selectFiat"></div>
-                <div class="network-pill"><span data-i18n="selectHint">选择支付方式</span></div>
+            <div class="order-hero">
+                <p class="order-hero-label" data-i18n="amountDue">应付金额</p>
+                <div class="order-hero-amount">
+                    <span id="selectFiat">--</span>
+                </div>
+                <p class="order-hero-sub">
+                    <span id="selectCryptoHint" data-i18n="selectHint">选择支付方式</span>
+                </p>
             </div>
 
             <div class="method-group">
-                <label class="method-label" data-i18n="currency">币种</label>
+                <div class="method-head">
+                    <span class="method-label" data-i18n="currency">币种</span>
+                    <span class="method-note" data-i18n="currencyNote">选择您要支付的币种</span>
+                </div>
                 <div class="chips" id="currencyChips" role="radiogroup"></div>
             </div>
 
             <div class="method-group">
-                <label class="method-label" data-i18n="networkLabel">网络</label>
-                <div class="chips" id="networkChips" role="radiogroup"></div>
+                <div class="method-head">
+                    <span class="method-label" data-i18n="networkLabel">网络</span>
+                    <span class="method-note" data-i18n="networkNote">务必与钱包网络一致</span>
+                </div>
+                <div class="net-list" id="networkChips" role="radiogroup"></div>
             </div>
 
-            <div class="warning">
-                <span class="warning-icon">!</span>
-                <span data-i18n="selectWarn">请确认收款网络与您钱包中的网络一致，选错网络将无法到账</span>
-            </div>
+            <p class="net-warn" data-i18n="selectWarn">请确认收款网络与您钱包中的网络一致，选错网络将无法到账</p>
 
             <button class="btn primary" id="selectPayBtn" disabled>
-                <span data-i18n="continuePay">继续支付</span>
+                <span id="selectBtnLabel" data-i18n="continuePay">继续支付</span>
             </button>
             <p class="status" id="selectStatus" hidden></p>
 
@@ -80,12 +88,13 @@
                 </div>
             </header>
 
-            <div class="amount-block">
-                <div class="amount-crypto">
+            <div class="order-hero">
+                <p class="order-hero-label" data-i18n="amountDue">应付金额</p>
+                <div class="order-hero-amount">
                     <span id="amountCrypto">--</span>
                     <span class="amount-symbol" id="amountSymbol"></span>
                 </div>
-                <div class="amount-fiat" id="amountFiat"></div>
+                <p class="order-hero-sub" id="amountFiat"></p>
                 <div class="network-pill" id="networkPill"></div>
             </div>
 
