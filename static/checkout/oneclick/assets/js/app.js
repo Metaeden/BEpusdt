@@ -58,6 +58,9 @@ const STRINGS = {
     payWithWallet: '一键支付',
     scanHint: '使用钱包 App 扫码支付',
     scanAddressHint: '扫码识别收款地址，转账时请手动输入精确金额',
+    manualTransfer: '手动转账',
+    scanManualTransfer: '扫码 / 手动转账',
+    deeplinkUnavailable: '当前浏览器无法直接唤起钱包，请展开下方扫码或手动转账完成支付',
     reselect: '更换支付方式',
     address: '收款地址',
     amount: '金额',
@@ -106,6 +109,9 @@ const STRINGS = {
     payWithWallet: 'Pay with wallet',
     scanHint: 'Scan with your wallet app',
     scanAddressHint: 'Scan to fill the receiving address, then enter the exact amount manually',
+    manualTransfer: 'Manual transfer',
+    scanManualTransfer: 'Scan / manual transfer',
+    deeplinkUnavailable: "Can't open the wallet from this browser. Scan the QR code or transfer manually below.",
     reselect: 'Change payment method',
     address: 'Receiving address',
     amount: 'Amount',
@@ -218,13 +224,10 @@ function renderOrder(order) {
     : (trade ? trade.chain.name : '');
   const pill = $('networkPill');
   pill.innerHTML = '';
-  const pillIcon = networkIcon(order.network ? order.network.network : (trade ? trade.chainKey : ''));
-  if (pillIcon) {
-    const img = document.createElement('img');
-    img.src = pillIcon;
-    img.alt = '';
-    img.width = 16; img.height = 16;
-    pill.appendChild(img);
+  pill.dataset.net = String(order.network ? order.network.network : (trade ? trade.chainKey : '')).toLowerCase();
+  const pillGlyph = makeGlyph(pill.dataset.net);
+  if (pillGlyph) {
+    pill.appendChild(pillGlyph);
   }
   pill.appendChild(document.createTextNode(netLabel));
   $('addressText').textContent = order.token;
@@ -278,6 +281,19 @@ const ICON_NETWORKS = ['aptos', 'arbitrum', 'base', 'bsc', 'ethereum', 'plasma',
 function networkIcon(network) {
   const key = String(network || '').toLowerCase();
   return ICON_NETWORKS.includes(key) ? `/checkout/oneclick/assets/icons/${key}.svg` : null;
+}
+
+/**
+ * 网络图标节点：SVG 经 CSS mask 涂品牌色（--icon 由各网络配色类使用）。
+ * 无对应图标时退化为首字母圆标。
+ */
+function makeGlyph(network) {
+  const icon = networkIcon(network);
+  if (!icon) return null;
+  const glyph = document.createElement('span');
+  glyph.className = 'net-glyph';
+  glyph.style.setProperty('--icon', `url("${icon}")`);
+  return glyph;
 }
 
 async function showSelect(order) {
@@ -376,15 +392,12 @@ async function showSelect(order) {
       card.setAttribute('role', 'radio');
       card.setAttribute('aria-checked', String(state.selMethod === m));
 
-      const icon = networkIcon(m.network);
       const iconWrap = document.createElement('span');
       iconWrap.className = 'net-icon';
-      if (icon) {
-        const img = document.createElement('img');
-        img.src = icon;
-        img.alt = '';
-        img.loading = 'lazy';
-        iconWrap.appendChild(img);
+      iconWrap.dataset.net = String(m.network || '').toLowerCase();
+      const glyph = makeGlyph(m.network);
+      if (glyph) {
+        iconWrap.appendChild(glyph);
       } else {
         iconWrap.textContent = String(m.token_net_name || m.network).slice(0, 1).toUpperCase();
       }
@@ -486,19 +499,33 @@ function setupPayment(order, trade) {
   const payBtn = $('payWalletBtn');
   const hint = $('walletHint');
 
+  // 主操作二选一：有插件钱包时按钮为主、二维码收进折叠区；
+  // 否则二维码为主操作。地址/金额复制始终收在「手动转账」折叠区。
+  const manual = $('manualBlock');
+  const manualSummary = $('manualSummary');
   if (state.wallet && !isMobile()) {
     payBtn.hidden = false;
     $('walletName').textContent = `${t('walletDetected')} ${state.wallet.label}`;
     payBtn.onclick = () => onPayClick();
+    $('manualBody').insertBefore(qrBlock, $('manualBody').firstChild);
+    qrBlock.hidden = false;
+    manualSummary.textContent = t('scanManualTransfer');
   } else {
-    payBtn.hidden = true;
-    if (isMobile()) {
-      hint.textContent = '';
-      hint.hidden = true;
-    } else if (kind !== 'address-only') {
-      hint.textContent = t('noWallet');
-      hint.hidden = false;
+    // 兜底：若二维码此前被移入折叠区，先移回主操作位
+    if (qrBlock.closest('.manual')) {
+      qrBlock.closest('.actions').prepend(qrBlock);
     }
+    qrBlock.hidden = !qrData;
+    manualSummary.textContent = t('manualTransfer');
+  }
+  manual.hidden = false;
+  if (isMobile()) {
+    hint.hidden = true;
+  } else if (!state.wallet && kind !== 'address-only') {
+    hint.textContent = t('noWallet');
+    hint.hidden = false;
+  } else {
+    hint.hidden = true;
   }
 }
 
@@ -521,15 +548,23 @@ async function onPayClick() {
       state.paidClicked = true;
       pollOnce();
     } else if (res.reason === 'use-deeplink') {
-      // 钱包扩展缺少本地 SDK：用标准 URI 唤起钱包 App
-      const { uri } = buildPaymentUri(state.trade, {
-        address: state.order.token,
-        amount: state.order.actual_amount,
-        orderId: state.order.order_id,
-        label: 'OneClick Pay',
-      });
-      if (uri) window.location.href = uri;
-      status.textContent = t('openingWallet');
+      // 钱包扩展缺少本地 SDK：移动端尝试用标准 URI 唤起钱包 App；
+      // 桌面浏览器没有协议处理器，如实提示并引导到扫码/手动转账
+      if (isMobile()) {
+        const { uri } = buildPaymentUri(state.trade, {
+          address: state.order.token,
+          amount: state.order.actual_amount,
+          orderId: state.order.order_id,
+          label: 'OneClick Pay',
+        });
+        if (uri) window.location.href = uri;
+        status.textContent = t('openingWallet');
+      } else {
+        status.textContent = t('deeplinkUnavailable');
+        const manual = $('manualBlock');
+        manual.open = true;
+        manual.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       status.hidden = false;
     } else if (res.reason === 'rejected') {
       status.textContent = t('rejected');
@@ -784,4 +819,4 @@ async function boot() {
 boot();
 
 // 便于调试与测试
-export { state, t, toAtomic };
+export { state, t, toAtomic, renderOrder, setupPayment };

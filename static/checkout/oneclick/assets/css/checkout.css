@@ -225,11 +225,48 @@ html, body {
   width: 36px; height: 36px;
   display: grid; place-items: center;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  background: var(--tile, color-mix(in srgb, var(--bg) 80%, transparent));
   font-size: 15px; font-weight: 700; color: var(--muted);
   overflow: hidden;
 }
-.net-icon img { width: 26px; height: 26px; display: block; }
+
+/* SVG 图标经 mask 涂品牌色（--icon 由 JS 注入，--glyph/--tile 按网络配色） */
+.net-glyph {
+  display: block;
+  width: 26px; height: 26px;
+  background: var(--glyph, var(--muted));
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+.network-pill .net-glyph { width: 15px; height: 15px; }
+
+/* 品牌配色（浅色模式） */
+[data-net="ethereum"] { --glyph: #627eea; --tile: rgba(98, 126, 234, .14); }
+[data-net="bsc"]      { --glyph: #f0b90b; --tile: rgba(240, 185, 11, .16); }
+[data-net="polygon"]  { --glyph: #8247e5; --tile: rgba(130, 71, 229, .14); }
+[data-net="arbitrum"] { --glyph: #28a0f0; --tile: rgba(40, 160, 240, .14); }
+[data-net="base"]     { --glyph: #0052ff; --tile: rgba(0, 82, 255, .14); }
+[data-net="tron"]     { --glyph: #eb0029; --tile: rgba(235, 0, 41, .12); }
+[data-net="ton"]      { --glyph: #0098ea; --tile: rgba(0, 152, 234, .14); }
+[data-net="solana"]   { --glyph: linear-gradient(135deg, #9945ff, #14f195); --tile: rgba(153, 69, 255, .14); }
+[data-net="plasma"]   { --glyph: #38a8e8; --tile: rgba(56, 168, 232, .14); }
+[data-net="aptos"]    { --glyph: #101828; --tile: rgba(16, 24, 40, .08); }
+[data-net="xlayer"]   { --glyph: #101828; --tile: rgba(16, 24, 40, .08); }
+
+/* 深色模式：整体提亮，黑色系品牌（Aptos/X Layer）翻白 */
+@media (prefers-color-scheme: dark) {
+  [data-net="ethereum"] { --glyph: #8ea2f7; --tile: rgba(142, 162, 247, .16); }
+  [data-net="bsc"]      { --glyph: #f8c928; --tile: rgba(248, 201, 40, .14); }
+  [data-net="polygon"]  { --glyph: #a279f0; --tile: rgba(162, 121, 240, .16); }
+  [data-net="arbitrum"] { --glyph: #54b6f5; --tile: rgba(84, 182, 245, .16); }
+  [data-net="base"]     { --glyph: #4d8dff; --tile: rgba(77, 141, 255, .16); }
+  [data-net="tron"]     { --glyph: #ff4157; --tile: rgba(255, 65, 87, .14); }
+  [data-net="ton"]      { --glyph: #2fb1f2; --tile: rgba(47, 177, 242, .16); }
+  [data-net="solana"]   { --glyph: linear-gradient(135deg, #a86bff, #2af7a8); --tile: rgba(168, 107, 255, .16); }
+  [data-net="plasma"]   { --glyph: #6cc4f5; --tile: rgba(108, 196, 245, .16); }
+  [data-net="aptos"]    { --glyph: #f2f4f7; --tile: rgba(242, 244, 247, .12); }
+  [data-net="xlayer"]   { --glyph: #f2f4f7; --tile: rgba(242, 244, 247, .12); }
+}
 
 .net-body { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .net-name { font-size: 14px; font-weight: 650; }
@@ -320,6 +357,40 @@ html, body {
 .qr-hint { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; }
 
 .fallback { margin-top: 16px; display: grid; gap: 12px; }
+
+/* 手动转账折叠区：收起地址/金额等次要信息 */
+.manual {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0 14px;
+  background: color-mix(in srgb, var(--bg) 40%, transparent);
+}
+.manual summary {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0;
+  font-size: 13px; font-weight: 600; color: var(--muted);
+  cursor: pointer; list-style: none;
+  user-select: none;
+}
+.manual summary::-webkit-details-marker { display: none; }
+.manual summary::after {
+  content: "";
+  flex: none;
+  width: 8px; height: 8px;
+  margin-left: 8px;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform .15s ease;
+}
+.manual[open] summary::after { transform: rotate(-135deg) translateY(-2px); }
+.manual summary:hover { color: var(--text); }
+.manual-body { padding: 2px 0 14px; }
+.manual .qr-block { margin: 2px 0 16px; }
+
+/* 支付页：二维码作为主操作时的留白 */
+.actions > .qr-block { margin-top: 4px; }
 .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
 .field-row {
   display: flex; align-items: center; gap: 8px;

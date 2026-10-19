@@ -104,7 +104,7 @@
                 <span data-i18n="exactAmountHint">请务必精确支付此金额，多付或少付都会导致无法自动到账</span>
             </div>
 
-            <!-- 主操作：钱包拉起 / 扫码 -->
+            <!-- 主操作：钱包拉起 / 扫码（二者只突出一个，另一个收进手动转账） -->
             <div class="actions">
                 <button class="btn primary" id="payWalletBtn" hidden>
                     <span id="payBtnLabel" data-i18n="payWithWallet">一键支付</span>
@@ -116,23 +116,28 @@
                     <p class="qr-hint" id="qrHint" data-i18n="scanHint">使用钱包 App 扫码支付</p>
                 </div>
 
-                <div class="fallback" id="fallbackBlock">
-                    <div class="field">
-                        <label data-i18n="address">收款地址</label>
-                        <div class="field-row">
-                            <code id="addressText">--</code>
-                            <button class="copy" id="copyAddress" data-i18n="copy" type="button">复制</button>
+                <details class="manual" id="manualBlock" hidden>
+                    <summary id="manualSummary" data-i18n="manualTransfer">手动转账</summary>
+                    <div class="manual-body" id="manualBody">
+                        <div class="fallback" id="fallbackBlock">
+                            <div class="field">
+                                <label data-i18n="address">收款地址</label>
+                                <div class="field-row">
+                                    <code id="addressText">--</code>
+                                    <button class="copy" id="copyAddress" data-i18n="copy" type="button">复制</button>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label data-i18n="amount">金额</label>
+                                <div class="field-row">
+                                    <code id="amountText">--</code>
+                                    <button class="copy" id="copyAmount" data-i18n="copy" type="button">复制</button>
+                                </div>
+                            </div>
                         </div>
+                        <p class="hint" id="walletHint" hidden></p>
                     </div>
-                    <div class="field">
-                        <label data-i18n="amount">金额</label>
-                        <div class="field-row">
-                            <code id="amountText">--</code>
-                            <button class="copy" id="copyAmount" data-i18n="copy" type="button">复制</button>
-                        </div>
-                    </div>
-                    <p class="hint" id="walletHint" hidden></p>
-                </div>
+                </details>
             </div>
 
             <div class="divider"></div>
