@@ -438,7 +438,6 @@ html, body {
   border-color: var(--line);
 }
 .btn.ghost:hover { color: var(--text); }
-.wallet-name { opacity: .8; font-weight: 500; font-size: 13px; }
 
 .qr-block { text-align: center; margin-top: 4px; }
 .qr-frame {

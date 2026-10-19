@@ -91,7 +91,6 @@ const STRINGS = {
     openingWallet: '正在唤起钱包…',
     amountChanged: '支付金额已更新，请重新确认',
     poweredBy: 'Powered by',
-    walletDetected: '检测到',
     currency: '币种',
     networkLabel: '网络',
     amountDue: '应付金额',
@@ -145,7 +144,6 @@ const STRINGS = {
     openingWallet: 'Opening wallet…',
     amountChanged: 'Payment amount updated, please review again',
     poweredBy: 'Powered by',
-    walletDetected: 'Detected',
     currency: 'Currency',
     networkLabel: 'Network',
     amountDue: 'Amount due',
@@ -519,7 +517,6 @@ function setupPayment(order, trade) {
   $('walletSection').hidden = !walletActive;
   payBtn.hidden = !walletActive;
   if (walletActive) {
-    $('walletName').textContent = `${t('walletDetected')} ${state.wallet.label}`;
     payBtn.onclick = () => onPayClick();
   }
   $('qrSection').hidden = !qrData;
