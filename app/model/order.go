@@ -317,10 +317,15 @@ func (o *Order) GetMethods(crypto Crypto) []MethodItem {
 
 func (o *Order) Network() any {
 	type network struct {
-		Alias   string  `json:"alias"`
-		Name    string  `json:"name"`
-		Crypto  Crypto  `json:"crypto"`
-		Network Network `json:"network"`
+		Alias       string  `json:"alias"`
+		Name        string  `json:"name"`
+		Crypto      Crypto  `json:"crypto"`
+		Network     Network `json:"network"`
+		Native      bool    `json:"native"`                 // 是否原生币
+		Contract    string  `json:"contract,omitempty"`     // 代币合约；原生币为空
+		Decimals    int32   `json:"decimals"`               // 代币精度，前端金额编码使用
+		ChainId     int64   `json:"chain_id,omitempty"`     // EVM 链 ID，非 EVM 链为 0
+		ExplorerFmt string  `json:"explorer_fmt,omitempty"` // 交易链接格式化串，%s 为哈希
 	}
 
 	var net = network{}
@@ -333,8 +338,36 @@ func (o *Order) Network() any {
 	net.Alias = info.Alias
 	net.Crypto = info.Crypto
 	net.Network = info.Network
+	net.Native = info.Native
+	net.Contract = info.Contract
+	net.Decimals = int32(math.Abs(float64(info.Decimal))) // registry 内为负指数，对外统一正数
+	net.ChainId = evmChainId(info.Network)
+	net.ExplorerFmt = info.ExplorerFmt
 
 	return net
+}
+
+// evmChainId 返回 EVM 网络的 chainId；非 EVM 网络返回 0。
+// 收银台模板据此生成 EIP-681 与 wallet_switchEthereumChain 参数，避免前端硬编码。
+func evmChainId(network Network) int64 {
+	switch network {
+	case conf.Ethereum:
+		return 1
+	case conf.Bsc:
+		return 56
+	case conf.Polygon:
+		return 137
+	case conf.Arbitrum:
+		return 42161
+	case conf.Base:
+		return 8453
+	case conf.Xlayer:
+		return 196
+	case conf.Plasma:
+		return 9745
+	default:
+		return 0
+	}
 }
 
 func (o *Order) TableName() string {

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <title>支付</title>
+    <link rel="stylesheet" href="/checkout/oneclick/assets/css/checkout.css">
+</head>
+<body>
+<div class="shell">
+    <main class="card" id="app" data-trade-id="{{ .trade_id }}">
+
+        <!-- 加载中 -->
+        <section class="state" id="stateLoading">
+            <div class="spinner"></div>
+            <p class="muted" data-i18n="loading">正在加载订单…</p>
+        </section>
+
+        <!-- 错误 -->
+        <section class="state" id="stateError" hidden>
+            <div class="icon-badge error">!</div>
+            <h1 data-i18n="errorTitle">订单不可用</h1>
+            <p class="muted" id="errorMessage"></p>
+        </section>
+
+        <!-- 主支付面板 -->
+        <section id="statePay" hidden>
+            <header class="head">
+                <div class="brand">
+                    <span class="brand-dot"></span>
+                    <span data-i18n="brand">OneClick Pay</span>
+                </div>
+                <div class="timer" id="timer" aria-live="polite">
+                    <span class="timer-label" data-i18n="timeLeft">剩余</span>
+                    <span class="timer-value" id="timerValue">--:--</span>
+                </div>
+            </header>
+
+            <div class="amount-block">
+                <div class="amount-crypto">
+                    <span id="amountCrypto">--</span>
+                    <span class="amount-symbol" id="amountSymbol"></span>
+                </div>
+                <div class="amount-fiat" id="amountFiat"></div>
+                <div class="network-pill" id="networkPill"></div>
+            </div>
+
+            <div class="warning" id="exactWarning">
+                <span class="warning-icon">!</span>
+                <span data-i18n="exactAmountHint">请务必精确支付此金额，多付或少付都会导致无法自动到账</span>
+            </div>
+
+            <!-- 主操作：钱包拉起 / 扫码 -->
+            <div class="actions">
+                <button class="btn primary" id="payWalletBtn" hidden>
+                    <span id="payBtnLabel" data-i18n="payWithWallet">一键支付</span>
+                    <span class="wallet-name" id="walletName"></span>
+                </button>
+
+                <div class="qr-block" id="qrBlock" hidden>
+                    <div class="qr-frame" id="qrFrame"></div>
+                    <p class="qr-hint" id="qrHint" data-i18n="scanHint">使用钱包 App 扫码支付</p>
+                </div>
+
+                <div class="fallback" id="fallbackBlock">
+                    <div class="field">
+                        <label data-i18n="address">收款地址</label>
+                        <div class="field-row">
+                            <code id="addressText">--</code>
+                            <button class="copy" id="copyAddress" data-i18n="copy" type="button">复制</button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label data-i18n="amount">金额</label>
+                        <div class="field-row">
+                            <code id="amountText">--</code>
+                            <button class="copy" id="copyAmount" data-i18n="copy" type="button">复制</button>
+                        </div>
+                    </div>
+                    <p class="hint" id="walletHint" hidden></p>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <dl class="meta">
+                <div><dt data-i18n="orderNo">订单号</dt><dd id="orderNo">--</dd></div>
+                <div><dt data-i18n="network">网络</dt><dd id="networkName">--</dd></div>
+            </dl>
+
+            <button class="btn ghost" id="paidBtn" data-i18n="paidBtn" type="button">我已完成支付</button>
+            <p class="status" id="statusText" hidden></p>
+        </section>
+
+        <!-- 确认中 -->
+        <section class="state" id="stateConfirming" hidden>
+            <div class="spinner"></div>
+            <h1 data-i18n="confirmingTitle">等待链上确认</h1>
+            <p class="muted" data-i18n="confirmingHint">已检测到付款，正在等待区块确认…</p>
+            <a class="tx-link" id="txLinkConfirming" hidden target="_blank" rel="noopener noreferrer" data-i18n="viewTx">在区块浏览器查看</a>
+        </section>
+
+        <!-- 成功 -->
+        <section class="state" id="stateSuccess" hidden>
+            <div class="icon-badge success">✓</div>
+            <h1 data-i18n="successTitle">支付成功</h1>
+            <p class="muted" data-i18n="successHint">交易已确认，感谢您的付款</p>
+            <a class="tx-link" id="txLinkSuccess" hidden target="_blank" rel="noopener noreferrer" data-i18n="viewTx">在区块浏览器查看</a>
+            <a class="btn primary" id="returnBtn" hidden data-i18n="returnMerchant">返回商户</a>
+        </section>
+
+        <!-- 过期/取消 -->
+        <section class="state" id="stateClosed" hidden>
+            <div class="icon-badge neutral">⏱</div>
+            <h1 id="closedTitle" data-i18n="expiredTitle">订单已过期</h1>
+            <p class="muted" data-i18n="expiredHint">请返回商户重新下单</p>
+        </section>
+
+        <footer class="foot">
+            <span data-i18n="poweredBy">Powered by</span>
+            <a href="https://github.com/v03413/BEpusdt" target="_blank" rel="noopener noreferrer">BEpusdt</a>
+        </footer>
+    </main>
+</div>
+
+<script type="module" src="/checkout/oneclick/assets/js/app.js"></script>
+</body>
+</html>

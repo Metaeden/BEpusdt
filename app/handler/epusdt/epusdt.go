@@ -411,6 +411,7 @@ func (Epusdt) Info(ctx *gin.Context) {
 		"expired_at":    order.ExpiredAt.Unix(),              // 截止时间
 		"created_at":    order.CreatedAt.Time().Unix(),       // 创建时间
 		"trade_url":     order.GetTxUrl(),                    // 链上详情
+		"tx_hash":       order.RefHash,                       // 交易哈希，未支付时为空
 		"support_url":   model.GetC(model.PaymentSupportUrl), // 客服链接
 		"redirect_url":  order.RedirectUrl(),                 // 跳转地址
 		"reselect":      order.CanReselectPayment(),          // 是否允许确认交易类型后重选
