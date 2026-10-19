@@ -60,7 +60,10 @@ const STRINGS = {
     scanAddressHint: '扫码识别收款地址，转账时请手动输入精确金额',
     manualTransfer: '手动转账',
     scanManualTransfer: '扫码 / 手动转账',
-    deeplinkUnavailable: '当前浏览器无法直接唤起钱包，请展开下方扫码或手动转账完成支付',
+    walletPay: '钱包支付',
+    scanPay: '扫码支付',
+    waitingPay: '等待支付，到账后自动确认',
+    deeplinkUnavailable: '当前浏览器无法直接唤起钱包，请展开下方手动转账完成支付',
     reselect: '更换支付方式',
     address: '收款地址',
     amount: '金额',
@@ -111,7 +114,10 @@ const STRINGS = {
     scanAddressHint: 'Scan to fill the receiving address, then enter the exact amount manually',
     manualTransfer: 'Manual transfer',
     scanManualTransfer: 'Scan / manual transfer',
-    deeplinkUnavailable: "Can't open the wallet from this browser. Scan the QR code or transfer manually below.",
+    walletPay: 'Wallet payment',
+    scanPay: 'Scan to pay',
+    waitingPay: 'Waiting for payment — auto-confirms when received',
+    deeplinkUnavailable: "Can't open the wallet from this browser. Use manual transfer below.",
     reselect: 'Change payment method',
     address: 'Receiving address',
     amount: 'Amount',
@@ -233,7 +239,6 @@ function renderOrder(order) {
   $('addressText').textContent = order.token;
   $('amountText').textContent = order.actual_amount;
   $('orderNo').textContent = order.order_id;
-  $('networkName').textContent = order.network ? (order.network.name || order.network.alias) : '--';
 
   if (!trade) {
     showError('Unsupported payment type: ' + order.trade_type);
@@ -284,12 +289,21 @@ function networkIcon(network) {
 }
 
 /**
- * 网络图标节点：SVG 经 CSS mask 涂品牌色（--icon 由各网络配色类使用）。
+ * 网络图标节点：SVG 经 CSS mask 涂品牌色（--icon 由 JS 注入变量）。
+ * 多色官方标（Arbitrum 藏青+蓝+白）不能单色 mask，直接用原图 <img>；
  * 无对应图标时退化为首字母圆标。
  */
+const MULTICOLOR_ICONS = ['arbitrum'];
 function makeGlyph(network) {
   const icon = networkIcon(network);
   if (!icon) return null;
+  if (MULTICOLOR_ICONS.includes(String(network || '').toLowerCase())) {
+    const img = document.createElement('img');
+    img.src = icon;
+    img.alt = '';
+    img.className = 'net-glyph-img';
+    return img;
+  }
   const glyph = document.createElement('span');
   glyph.className = 'net-glyph';
   glyph.style.setProperty('--icon', `url("${icon}")`);
@@ -499,26 +513,17 @@ function setupPayment(order, trade) {
   const payBtn = $('payWalletBtn');
   const hint = $('walletHint');
 
-  // 主操作二选一：有插件钱包时按钮为主、二维码收进折叠区；
-  // 否则二维码为主操作。地址/金额复制始终收在「手动转账」折叠区。
-  const manual = $('manualBlock');
-  const manualSummary = $('manualSummary');
-  if (state.wallet && !isMobile()) {
-    payBtn.hidden = false;
+  // 分区显隐：检测到插件钱包 → 「钱包支付」区块为主操作；
+  // 否则「扫码支付」为主。地址/金额复制收在「手动转账」折叠区。
+  const walletActive = Boolean(state.wallet && !isMobile());
+  $('walletSection').hidden = !walletActive;
+  payBtn.hidden = !walletActive;
+  if (walletActive) {
     $('walletName').textContent = `${t('walletDetected')} ${state.wallet.label}`;
     payBtn.onclick = () => onPayClick();
-    $('manualBody').insertBefore(qrBlock, $('manualBody').firstChild);
-    qrBlock.hidden = false;
-    manualSummary.textContent = t('scanManualTransfer');
-  } else {
-    // 兜底：若二维码此前被移入折叠区，先移回主操作位
-    if (qrBlock.closest('.manual')) {
-      qrBlock.closest('.actions').prepend(qrBlock);
-    }
-    qrBlock.hidden = !qrData;
-    manualSummary.textContent = t('manualTransfer');
   }
-  manual.hidden = false;
+  $('qrSection').hidden = !qrData;
+  qrBlock.hidden = !qrData;
   if (isMobile()) {
     hint.hidden = true;
   } else if (!state.wallet && kind !== 'address-only') {
@@ -527,6 +532,7 @@ function setupPayment(order, trade) {
   } else {
     hint.hidden = true;
   }
+  $('manualBlock').hidden = false;
 }
 
 async function onPayClick() {
