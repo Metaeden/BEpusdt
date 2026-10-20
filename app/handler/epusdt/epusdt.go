@@ -12,6 +12,7 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/v03413/bepusdt/app/log"
 	"github.com/v03413/bepusdt/app/model"
+	"github.com/v03413/bepusdt/app/task"
 	"github.com/v03413/bepusdt/app/utils"
 )
 
@@ -61,6 +62,15 @@ type infoReq struct {
 type methodsReq struct {
 	TradeID  string `json:"trade_id" binding:"required"`
 	Currency string `json:"currency"`
+}
+
+type claimReq struct {
+	TradeID        string `json:"trade_id" binding:"required"`
+	BinanceOrderNo string `json:"binance_order_no" binding:"required"`
+}
+
+type paidReq struct {
+	TradeID string `json:"trade_id" binding:"required"`
 }
 
 func loadPayOrder(ctx *gin.Context, tradeID string) (model.Order, bool) {
@@ -417,6 +427,55 @@ func (Epusdt) Info(ctx *gin.Context) {
 		"redirect_url":  order.RedirectUrl(),                 // 跳转地址
 		"reselect":      order.CanReselectPayment(),          // 是否允许确认交易类型后重选
 	}))
+}
+
+// Claim 币安 Pay 金额打错的自助找回：用户粘贴币安 App 的订单编号，后端查找流水核销订单
+func (Epusdt) Claim(ctx *gin.Context) {
+	var req claimReq
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(200, respFailJson(fmt.Sprintf("参数错误：%s", err.Error())))
+
+		return
+	}
+
+	// 校验客户端指纹，防止他人凭 trade_id 回填他人订单
+	if _, ok := loadPayOrder(ctx, req.TradeID); !ok {
+		return
+	}
+
+	updated, err := task.BinancePayClaim(req.TradeID, req.BinanceOrderNo)
+	if err != nil {
+		ctx.JSON(200, respFailJson(err.Error()))
+
+		return
+	}
+
+	ctx.JSON(200, respSuccJson(gin.H{
+		"trade_id": updated.TradeId,
+		"status":   updated.Status,
+	}))
+}
+
+// Paid 收银台「我已完成支付」：触发一次币安 Pay 即时扫描，加速到账确认
+func (Epusdt) Paid(ctx *gin.Context) {
+	var req paidReq
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(200, respFailJson(fmt.Sprintf("参数错误：%s", err.Error())))
+
+		return
+	}
+
+	if _, ok := loadPayOrder(ctx, req.TradeID); !ok {
+		return
+	}
+
+	if err := task.BinancePayForceScan(req.TradeID); err != nil {
+		ctx.JSON(200, respFailJson(err.Error()))
+
+		return
+	}
+
+	ctx.JSON(200, respSuccJson(gin.H{"trade_id": req.TradeID}))
 }
 
 func (Epusdt) SignVerify(ctx *gin.Context) {

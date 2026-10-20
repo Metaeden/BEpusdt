@@ -106,6 +106,14 @@ const STRINGS = {
     bpStep1: '打开币安 App，进入「支付」→「转账」',
     bpStep2: '选择 {cur}，收款方式选「向 UID 付款」',
     bpStep3: '粘贴收款 UID，并输入与订单完全一致的金额',
+    bpOpenApp: '打开币安 App',
+    bpOpenAppFail: '无法自动打开币安 App，请手动打开并转账',
+    bpClaimSummary: '金额付错了？回填订单编号找回',
+    bpClaimLabel: '币安 App「订单编号」（18 位数字）',
+    bpClaimBtn: '回填找回',
+    bpClaimOk: '回填成功，正在确认到账…',
+    bpClaimFail: '回填未成功',
+    contactSupport: '联系客服',
   },
   en: {
     loading: 'Loading order…',
@@ -164,6 +172,14 @@ const STRINGS = {
     bpStep1: 'Open the Binance app, go to Pay → Transfer',
     bpStep2: 'Pick {cur} and choose "Send to UID"',
     bpStep3: 'Paste the UID and enter the exact order amount',
+    bpOpenApp: 'Open Binance app',
+    bpOpenAppFail: "Couldn't open the Binance app automatically. Please open it manually.",
+    bpClaimSummary: 'Paid the wrong amount? Recover with the Binance order ID',
+    bpClaimLabel: 'Binance app "Order ID" (18 digits)',
+    bpClaimBtn: 'Recover',
+    bpClaimOk: 'Submitted, confirming receipt…',
+    bpClaimFail: 'Recovery failed',
+    contactSupport: 'Contact support',
   },
 };
 
@@ -557,6 +573,10 @@ function setupBinancePay(order) {
   $('walletSection').hidden = true;
   $('binanceSection').hidden = false;
 
+  // 移动端提供一键唤起币安 App（实验性：bnc:// 协议无公开文档，无法唤起时前端兜底提示）
+  const openBtn = $('bpOpenAppBtn');
+  if (openBtn) openBtn.hidden = !isMobile();
+
   // 步骤文案里的币种随订单变化（USDT / USDC）
   const cur = String(order.currency || '').toUpperCase();
   const step2 = document.querySelector('[data-i18n="bpStep2"]');
@@ -666,6 +686,17 @@ function showClosed(statusCode) {
   if (statusCode === STATUS.CANCELED) title.textContent = t('canceledTitle');
   else if (statusCode === STATUS.FAILED) title.textContent = t('failedTitle');
   else title.textContent = t('expiredTitle');
+
+  // 客服引导：配置了 PaymentSupportUrl 时在过期/取消页展示入口
+  const support = $('supportLink');
+  if (support) {
+    const url = String((state.order && state.order.support_url) || '');
+    if (/^https?:\/\//.test(url)) {
+      support.href = url;
+      support.hidden = false;
+    }
+  }
+
   stopTimers();
 }
 
@@ -834,8 +865,66 @@ async function boot() {
   });
   $('paidBtn').addEventListener('click', () => {
     state.paidClicked = true;
+    // 币安 Pay 订单：顺带触发一次服务端即时扫描（fire-and-forget，节流由后端控制）
+    if (state.trade && state.trade.chain.kind === 'binancepay') {
+      fetch('/api/v1/pay/paid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trade_id: state.tradeId }),
+      }).catch(() => {});
+    }
     pollOnce();
   });
+
+  // 金额付错的自助找回：粘贴币安订单编号，后端查流水核销订单
+  const claimBtn = $('claimBtn');
+  if (claimBtn) {
+    claimBtn.addEventListener('click', async () => {
+      const status = $('statusText');
+      const input = $('claimInput');
+      const no = input ? input.value.trim() : '';
+      if (!no) {
+        status.textContent = t('bpClaimLabel');
+        status.hidden = false;
+        return;
+      }
+      claimBtn.disabled = true;
+      try {
+        const res = await fetch('/api/v1/pay/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trade_id: state.tradeId, binance_order_no: no }),
+        });
+        const json = await res.json();
+        if (json && json.status_code === 200) {
+          status.textContent = t('bpClaimOk');
+          state.paidClicked = true;
+          pollOnce();
+        } else {
+          status.textContent = `${t('bpClaimFail')}${json && json.message ? ': ' + json.message : ''}`;
+        }
+      } catch (e) {
+        status.textContent = t('bpClaimFail');
+      }
+      status.hidden = false;
+      claimBtn.disabled = false;
+    });
+  }
+
+  // 一键唤起币安 App（实验性：bnc:// 未公开文档、未真机验证，失败时延时兜底提示）
+  const openAppBtn = $('bpOpenAppBtn');
+  if (openAppBtn) {
+    openAppBtn.addEventListener('click', () => {
+      window.location.href = 'bnc://';
+      setTimeout(() => {
+        if (document.visibilityState !== 'hidden') {
+          const status = $('statusText');
+          status.textContent = t('bpOpenAppFail');
+          status.hidden = false;
+        }
+      }, 2500);
+    });
+  }
   $('reselectBtn').addEventListener('click', () => {
     // 返回支付方式选择页；后端对 waiting 订单允许重新 update-order
     if (state.order && state.order.reselect) showSelect(state.order);

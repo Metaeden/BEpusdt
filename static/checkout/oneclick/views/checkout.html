@@ -173,6 +173,21 @@
                         </div>
                     </div>
                 </div>
+                <button class="btn primary" id="bpOpenAppBtn" type="button" hidden data-i18n="bpOpenApp">打开币安 App</button>
+                <!-- 金额付错时的自助找回：粘贴币安订单编号回填 -->
+                <details class="manual" id="bpClaimBlock">
+                    <summary data-i18n="bpClaimSummary">金额付错了？回填订单编号找回</summary>
+                    <div class="manual-body">
+                        <div class="field">
+                            <label data-i18n="bpClaimLabel">币安 App「订单编号」（18 位数字）</label>
+                            <div class="field-row">
+                                <input class="claim-input" id="claimInput" type="text" inputmode="numeric"
+                                    autocomplete="off" maxlength="24" />
+                                <button class="copy" id="claimBtn" data-i18n="bpClaimBtn" type="button">回填找回</button>
+                            </div>
+                        </div>
+                    </div>
+                </details>
             </div>
 
             <!-- 等待支付状态条 -->
@@ -212,6 +227,7 @@
             <div class="icon-badge neutral">⏱</div>
             <h1 id="closedTitle" data-i18n="expiredTitle">订单已过期</h1>
             <p class="muted" data-i18n="expiredHint">请返回商户重新下单</p>
+            <a class="tx-link" id="supportLink" hidden target="_blank" rel="noopener noreferrer" data-i18n="contactSupport">联系客服</a>
         </section>
 
         <footer class="foot">

@@ -26,5 +26,7 @@ func epusdtInit(engine *gin.Engine) {
 		payGrp.POST("/notify", epHdr.Notify)
 		payGrp.POST("/methods", epHdr.GetMethods)
 		payGrp.POST("/update-order", epHdr.UpdateOrder)
+		payGrp.POST("/claim", epHdr.Claim) // 币安 Pay 金额打错时回填币安订单编号自助找回
+		payGrp.POST("/paid", epHdr.Paid)   // 我已完成支付：触发即时扫描
 	}
 }

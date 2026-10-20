@@ -524,6 +524,15 @@ html, body {
   font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
   overflow-wrap: anywhere;
 }
+/* 币安订单编号回填输入框：与 field-row 的 code 同风格 */
+.claim-input {
+  flex: 1; min-width: 0;
+  padding: 0;
+  border: none; outline: none; background: transparent;
+  color: var(--text);
+  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.claim-input::placeholder { color: var(--muted); }
 .copy {
   flex: none;
   padding: 5px 10px;
