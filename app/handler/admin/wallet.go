@@ -37,6 +37,27 @@ type wListReq struct {
 	Trade   string `json:"trade_type"`
 }
 
+// binancePayWalletUnique 币安 Pay 同币种只允许一个启用中的收款 UID 钱包：
+// 一个 API Key 只能看到本账号流水，多 UID 会轮流分配订单却永远收不到款
+func binancePayWalletUnique(tradeType string, excludeID int64) error {
+	if tradeType != string(model.BinancePayUsdt) && tradeType != string(model.BinancePayUsdc) {
+		return nil
+	}
+
+	var db = model.Db.Model(&model.Wallet{}).Where("trade_type = ? and status = ?", tradeType, model.WaStatusEnable)
+	if excludeID > 0 {
+		db = db.Where("id != ?", excludeID)
+	}
+
+	var count int64
+	db.Count(&count)
+	if count > 0 {
+		return fmt.Errorf("币安 Pay 同一币种只能配置一个启用中的收款 UID 钱包（一个 API Key 只能看到本账号流水），请先停用或删除已有钱包")
+	}
+
+	return nil
+}
+
 func (Wallet) Add(ctx *gin.Context) {
 	var req wAddReq
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -47,6 +68,12 @@ func (Wallet) Add(ctx *gin.Context) {
 
 	if !model.IsSupportedTradeType(model.TradeType(req.TradeType)) {
 		base.BadRequest(ctx, fmt.Sprintf("不支持的交易类型: %s", req.TradeType))
+
+		return
+	}
+
+	if err := binancePayWalletUnique(req.TradeType, 0); err != nil {
+		base.BadRequest(ctx, err.Error())
 
 		return
 	}
@@ -144,9 +171,23 @@ func (Wallet) Mod(ctx *gin.Context) {
 			return
 		}
 
+		if err := binancePayWalletUnique(*req.TradeType, w.ID); err != nil {
+			base.BadRequest(ctx, err.Error())
+
+			return
+		}
+
 		w.TradeType = *req.TradeType
 	}
 	if req.Status != nil {
+		if *req.Status == model.WaStatusEnable {
+			if err := binancePayWalletUnique(w.TradeType, w.ID); err != nil {
+				base.BadRequest(ctx, err.Error())
+
+				return
+			}
+		}
+
 		w.Status = *req.Status
 	}
 	if req.OtherNotify != nil {

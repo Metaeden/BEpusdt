@@ -1,6 +1,9 @@
 package notifier
 
 import (
+	"time"
+
+	"github.com/shopspring/decimal"
 	"github.com/v03413/bepusdt/app/model"
 	"github.com/v03413/bepusdt/app/utils"
 )
@@ -12,13 +15,14 @@ const (
 )
 
 type Notifier interface {
-	Initialize(params string) error                             // 初始化
-	Success(o model.Order)                                      // 交易成功通知
-	NotifyFail(o model.Order, reason string)                    // 订单回调失败通知
-	NonOrderTransfer(trans model.TronTransfer, wa model.Wallet) // 非订单交易通知
-	TronResourceChange(res model.TronResource)                  // Tron 资源变动通知
-	Welcome()                                                   // 程序启动时的欢迎信息
-	Test() error                                                // 测试通知是否成功
+	Initialize(params string) error                                                                // 初始化
+	Success(o model.Order)                                                                         // 交易成功通知
+	NotifyFail(o model.Order, reason string)                                                       // 订单回调失败通知
+	NonOrderTransfer(trans model.TronTransfer, wa model.Wallet)                                    // 非订单交易通知
+	UnmatchedPayIncome(currency string, amount decimal.Decimal, txnID, payer string, at time.Time) // 币安 Pay 无主入账通知
+	TronResourceChange(res model.TronResource)                                                     // Tron 资源变动通知
+	Welcome()                                                                                      // 程序启动时的欢迎信息
+	Test() error                                                                                   // 测试通知是否成功
 }
 
 var notifierMap = make(map[string]Notifier)
@@ -84,6 +88,15 @@ func NonOrderTransfer(trans model.TronTransfer, wa model.Wallet) {
 		return
 	}
 	go notifier.NonOrderTransfer(trans, wa)
+}
+
+// UnmatchedPayIncome 币安 Pay 扫描批次中未被任何订单消费的入账流水告警（金额打错、过期后付款等漏单兜底）
+func UnmatchedPayIncome(currency string, amount decimal.Decimal, txnID, payer string, at time.Time) {
+	notifier, err := getNotifier()
+	if err != nil {
+		return
+	}
+	go notifier.UnmatchedPayIncome(currency, amount, txnID, payer, at)
 }
 
 func TronResourceChange(res model.TronResource) {

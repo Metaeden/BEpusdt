@@ -110,7 +110,8 @@ func (o *Order) SetCanceled() error {
 	core.New()
 	o.Status = OrderStatusCanceled
 
-	return Db.Save(o).Error
+	// 用列级更新代替 Save：GORM 会按 CreatedAt 字段名约定在 Save 时重写 created_at，导致创建时间漂移
+	return Db.Model(o).Update("status", o.Status).Error
 }
 
 // CanReselectPayment 判断订单是否支持重选交易类型
@@ -137,19 +138,19 @@ func (o *Order) MatchFingerprint(fingerprint string) bool {
 func (o *Order) SetExpired() {
 	o.Status = OrderStatusExpired
 
-	Db.Save(o)
+	Db.Model(o).Update("status", o.Status) // 列级更新，避免 Save 重写 created_at
 }
 
 func (o *Order) SetSuccess() {
 	o.Status = OrderStatusSuccess
 
-	Db.Save(o)
+	Db.Model(o).Update("status", o.Status) // 列级更新，避免 Save 重写 created_at
 }
 
 func (o *Order) SetFailed() {
 	o.Status = OrderStatusFailed
 
-	Db.Save(o)
+	Db.Model(o).Update("status", o.Status) // 列级更新，避免 Save 重写 created_at
 }
 
 func (o *Order) MarkConfirming(blockNum int, from, hash string, at time.Time, amount decimal.Decimal) error {
@@ -158,20 +159,32 @@ func (o *Order) MarkConfirming(blockNum int, from, hash string, at time.Time, am
 	o.RefHash = hash
 	o.RefBlockNum = blockNum
 	o.Status = OrderStatusConfirming
+
+	// 列级更新，避免 Save 重写 created_at（GORM 按 CreatedAt 字段名约定填充时间）
+	updates := map[string]any{
+		"from_address":  o.FromAddress,
+		"confirmed_at":  o.ConfirmedAt,
+		"ref_hash":      o.RefHash,
+		"ref_block_num": o.RefBlockNum,
+		"status":        o.Status,
+	}
 	if o.AddressLocked {
 		rate, _ := decimal.NewFromString(o.Rate)
 		o.Amount = amount.String()
 		o.Money = rate.Mul(amount).String()
+		updates["amount"] = o.Amount
+		updates["money"] = o.Money
 	}
 
-	return Db.Save(o).Error
+	return Db.Model(o).Updates(updates).Error
 }
 
 func (o *Order) SetNotifyState(state int) error {
 	o.NotifyNum += 1
 	o.NotifyState = state
 
-	return Db.Save(o).Error
+	// 列级更新，避免 Save 重写 created_at
+	return Db.Model(o).Updates(map[string]any{"notify_num": o.NotifyNum, "notify_state": o.NotifyState}).Error
 }
 
 func (o *Order) GetStatusLabel() string {
@@ -417,7 +430,13 @@ func CalcTradeAmount(wallets []Wallet, rate decimal.Decimal, p OrderParams) (Wal
 	status := []int{OrderStatusConfirming, OrderStatusWaiting}
 	Db.Where("status in (?) and trade_type = ?", status, p.TradeType).Find(&orders)
 	for _, order := range orders {
-		lock[order.Address+order.Amount] = true
+		// 锁键必须与下方查询键一致使用 MatchAddress：TON USDT 的 MatchAddress 是 Jetton 钱包地址，
+		// 与 Address 不同，若用 Address 做锁键则金额唯一性失效，会产生同金额订单无法区分核销
+		key := order.Address
+		if order.MatchAddress != "" {
+			key = order.MatchAddress
+		}
+		lock[key+order.Amount] = true
 	}
 
 	atom, precision := GetAtomicity(p.TradeType)
