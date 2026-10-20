@@ -2,6 +2,7 @@ package admin
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/v03413/bepusdt/app/handler/base"
 	"github.com/v03413/bepusdt/app/model"
 	"github.com/v03413/bepusdt/app/notifier"
+	"github.com/v03413/bepusdt/app/task"
 	"github.com/v03413/bepusdt/app/utils"
 )
 
@@ -32,6 +34,17 @@ type notifierConf struct {
 	Params  json.RawMessage `json:"params" binding:"required"`
 }
 
+// binancePaySecretMask 币安 Pay Secret 回显掩码：gets 时以掩码替代明文，sets 收到掩码视为未修改
+const binancePaySecretMask = "******"
+
+func maskBinancePaySecret(k model.ConfKey, v string) string {
+	if k == model.BinancePayApiSecret && v != "" {
+		return binancePaySecretMask
+	}
+
+	return v
+}
+
 func (Conf) Set(ctx *gin.Context) {
 	var req confReq
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -40,7 +53,13 @@ func (Conf) Set(ctx *gin.Context) {
 		return
 	}
 
-	model.SetK(model.ConfKey(strings.TrimSpace(req.Key)), strings.TrimSpace(req.Value))
+	key := model.ConfKey(strings.TrimSpace(req.Key))
+	if key == model.BinancePayApiSecret && strings.TrimSpace(req.Value) == binancePaySecretMask {
+		base.Ok(ctx, "配置成功")
+
+		return
+	}
+	model.SetK(key, strings.TrimSpace(req.Value))
 
 	defer model.RefreshC()
 
@@ -55,7 +74,8 @@ func (Conf) Get(ctx *gin.Context) {
 		return
 	}
 
-	base.Ok(ctx, gin.H{"key": req.Key, "value": model.GetK(model.ConfKey(req.Key))})
+	key := model.ConfKey(strings.TrimSpace(req.Key))
+	base.Ok(ctx, gin.H{"key": req.Key, "value": maskBinancePaySecret(key, model.GetK(key))})
 }
 
 func (Conf) Del(ctx *gin.Context) {
@@ -84,7 +104,7 @@ func (Conf) Gets(ctx *gin.Context) {
 
 	var data = gin.H{}
 	for _, item := range items {
-		data[string(item.K)] = item.V
+		data[string(item.K)] = maskBinancePaySecret(item.K, item.V)
 	}
 
 	base.Ok(ctx, data)
@@ -103,6 +123,10 @@ func (Conf) Sets(ctx *gin.Context) {
 	for _, item := range req {
 		var k = strings.TrimSpace(item.Key)
 		var v = strings.TrimSpace(item.Value)
+		// Secret 掩码视为未修改：不删除不重建，保留数据库原值
+		if k == string(model.BinancePayApiSecret) && v == binancePaySecretMask {
+			continue
+		}
 		keys = append(keys, k)
 		data = append(data, model.Conf{K: model.ConfKey(k), V: v})
 	}
@@ -171,6 +195,19 @@ func (Conf) NotifierTest(ctx *gin.Context) {
 	}
 
 	base.Ok(ctx, "发送测试成功")
+}
+
+// BinancePayTest 币安 Pay「测试连接」：用当前保存的配置拉一次流水，验证 Key/Secret 是否有效。
+// 失败走 400，前端拦截器会直接以 msg 弹错
+func (Conf) BinancePayTest(ctx *gin.Context) {
+	count, err := task.BinancePayTestConn()
+	if err != nil {
+		base.BadRequest(ctx, "连接失败："+err.Error())
+
+		return
+	}
+
+	base.Ok(ctx, fmt.Sprintf("连接成功，已读取到 %d 条 Pay 流水，配置有效", count))
 }
 
 func (Conf) CheckoutList(ctx *gin.Context) {

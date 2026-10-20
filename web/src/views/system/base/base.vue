@@ -119,6 +119,7 @@ const getConf = async () => {
         "home_redirect_url",
         "binancepay_api_key",
         "binancepay_api_secret",
+        "binancepay_api_base",
         "binancepay_poll_second"
       ]
     });

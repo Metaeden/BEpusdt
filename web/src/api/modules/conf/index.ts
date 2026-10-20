@@ -48,6 +48,14 @@ const notifierTestAPI = (data: any) => {
   });
 };
 
+const binancepayTestAPI = (data: any) => {
+  return axios({
+    url: "/api/conf/binancepay_test",
+    method: "post",
+    data
+  });
+};
+
 const resetApiAuthToken = (data: any) => {
   return axios({
     url: "/api/conf/reset_api_auth_token",
@@ -78,6 +86,7 @@ export {
   setsConfAPI,
   notifierAPI,
   notifierTestAPI,
+  binancepayTestAPI,
   resetApiAuthToken,
   getRpcConfAPI,
   checkoutListAPI
