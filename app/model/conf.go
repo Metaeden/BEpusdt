@@ -53,6 +53,8 @@ var defaultConf = map[ConfKey]string{
 	RateSyncHistoryDays:     "30",
 	MqttTopicPrefix:         "bepusdt",
 	HomeRedirectUrl:         "",
+	BinancePayApiBase:       "https://api.binance.com",
+	BinancePayPollSecond:    "30",
 }
 
 type Conf struct {

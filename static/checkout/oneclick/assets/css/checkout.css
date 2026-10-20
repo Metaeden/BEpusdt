@@ -343,6 +343,7 @@ html, body {
 [data-net="ton"]      { --glyph: #0098ea; --tile: rgba(0, 152, 234, .14); }
 [data-net="solana"]   { --glyph: linear-gradient(135deg, #9945ff, #14f195); --tile: rgba(153, 69, 255, .14); }
 [data-net="plasma"]   { --glyph: #38a8e8; --tile: rgba(56, 168, 232, .14); }
+[data-net="binancepay"] { --glyph: #f0b90b; --tile: rgba(240, 185, 11, .16); }
 [data-net="aptos"]    { --glyph: #101828; --tile: rgba(16, 24, 40, .08); }
 [data-net="xlayer"]   { --glyph: #101828; --tile: rgba(16, 24, 40, .08); }
 
@@ -350,6 +351,7 @@ html, body {
 @media (prefers-color-scheme: dark) {
   [data-net="ethereum"] { --glyph: #8ea2f7; --tile: rgba(142, 162, 247, .16); }
   [data-net="bsc"]      { --glyph: #f8c928; --tile: rgba(248, 201, 40, .14); }
+  [data-net="binancepay"] { --glyph: #f8c928; --tile: rgba(248, 201, 40, .14); }
   [data-net="polygon"]  { --glyph: #a279f0; --tile: rgba(162, 121, 240, .16); }
   [data-net="arbitrum"] { --glyph: #54b6f5; --tile: rgba(84, 182, 245, .16); }
   [data-net="base"]     { --glyph: #4d8dff; --tile: rgba(77, 141, 255, .16); }
@@ -438,6 +440,33 @@ html, body {
   border-color: var(--line);
 }
 .btn.ghost:hover { color: var(--text); }
+
+
+.bp-steps {
+  margin: 10px 0 14px;
+  padding-left: 0;
+  list-style: none;
+  counter-reset: bp;
+}
+.bp-steps li {
+  counter-increment: bp;
+  position: relative;
+  padding-left: 26px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin-bottom: 6px;
+}
+.bp-steps li::before {
+  content: counter(bp);
+  position: absolute; left: 0; top: 1px;
+  width: 17px; height: 17px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand-strong);
+  font-size: 10.5px; font-weight: 700;
+  line-height: 17px; text-align: center;
+}
 
 .qr-block { text-align: center; margin-top: 4px; }
 .qr-frame {

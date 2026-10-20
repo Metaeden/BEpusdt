@@ -88,6 +88,30 @@
             <a-input v-model="form.home_redirect_url" placeholder="主页跳转地址 留空则显示默认页面" allow-clear />
           </a-form-item>
 
+          <a-form-item
+            field="binancepay_api_key"
+            label="币安 Pay API Key"
+            extra="收款币安账号的只读 API Key（币安官网-管理API），留空则不启用币安 Pay 收款"
+          >
+            <a-input v-model="form.binancepay_api_key" placeholder="留空禁用币安 Pay" allow-clear />
+          </a-form-item>
+
+          <a-form-item
+            field="binancepay_api_secret"
+            label="币安 Pay API Secret"
+            extra="与上方 API Key 配对的 Secret，仅用于拉取 Pay 流水，请妥善保管"
+          >
+            <a-input-password v-model="form.binancepay_api_secret" placeholder="留空禁用币安 Pay" allow-clear />
+          </a-form-item>
+
+          <a-form-item
+            field="binancepay_poll_second"
+            label="币安 Pay 轮询间隔"
+            extra="流水扫描间隔，单位秒；过低会消耗币安接口权重，推荐 30"
+          >
+            <a-input v-model="form.binancepay_poll_second" placeholder="推荐 30" />
+          </a-form-item>
+
           <a-form-item>
             <a-space>
               <a-button type="primary" html-type="submit">提交</a-button>
@@ -118,7 +142,10 @@ const form = ref({
   payment_min_amount: "",
   payment_match_mode: "classic",
   home_redirect_url: "",
-  payment_lookback_hour: ""
+  payment_lookback_hour: "",
+  binancepay_api_key: "",
+  binancepay_api_secret: "",
+  binancepay_poll_second: ""
 });
 const rules = {
   block_height_max_diff: [
@@ -175,6 +202,22 @@ const rules = {
       message: "金额匹配模式不能为空"
     }
   ],
+  binancepay_poll_second: [
+    {
+      validator: (value: string, callback: (error?: string) => void) => {
+        if (!value) {
+          callback();
+          return;
+        }
+        const num = Number(value);
+        if (!Number.isInteger(num) || num <= 0) {
+          callback("币安 Pay 轮询间隔必须为正整数");
+        } else {
+          callback();
+        }
+      }
+    }
+  ],
   payment_lookback_hour: [
     {
       required: true,
@@ -205,7 +248,10 @@ const onSubmit = async ({ errors }: ArcoDesign.ArcoSubmit) => {
     { key: "payment_timeout", value: form.value.payment_timeout },
     { key: "payment_match_mode", value: form.value.payment_match_mode },
     { key: "home_redirect_url", value: form.value.home_redirect_url },
-    { key: "payment_lookback_hour", value: form.value.payment_lookback_hour }
+    { key: "payment_lookback_hour", value: form.value.payment_lookback_hour },
+    { key: "binancepay_api_key", value: form.value.binancepay_api_key },
+    { key: "binancepay_api_secret", value: form.value.binancepay_api_secret },
+    { key: "binancepay_poll_second", value: form.value.binancepay_poll_second }
   ]);
 
   Message.success("保存成功");
@@ -225,6 +271,9 @@ watch(
     form.value.payment_match_mode = data.value.payment_match_mode || "classic";
     form.value.home_redirect_url = data.value.home_redirect_url || "";
     form.value.payment_lookback_hour = data.value.payment_lookback_hour || "";
+    form.value.binancepay_api_key = data.value.binancepay_api_key || "";
+    form.value.binancepay_api_secret = data.value.binancepay_api_secret || "";
+    form.value.binancepay_poll_second = data.value.binancepay_poll_second || "";
   }
 );
 </script>

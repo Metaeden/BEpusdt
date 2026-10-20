@@ -101,6 +101,11 @@ const STRINGS = {
     continuePay: '继续支付',
     selectFailed: '加载支付方式失败',
     selectRetry: '请重新选择支付方式',
+    binancePayLabel: '币安 Pay 转账',
+    binancePayUid: '收款 UID',
+    bpStep1: '打开币安 App，进入「支付」→「转账」',
+    bpStep2: '选择 USDT，收款方式选「向 UID 付款」',
+    bpStep3: '粘贴收款 UID，并输入与订单完全一致的金额',
   },
   en: {
     loading: 'Loading order…',
@@ -154,6 +159,11 @@ const STRINGS = {
     continuePay: 'Continue to pay',
     selectFailed: 'Failed to load payment methods',
     selectRetry: 'Please choose a payment method again',
+    binancePayLabel: 'Binance Pay transfer',
+    binancePayUid: 'Receiving UID',
+    bpStep1: 'Open the Binance app, go to Pay → Transfer',
+    bpStep2: 'Pick USDT and choose "Send to UID"',
+    bpStep3: 'Paste the UID and enter the exact order amount',
   },
 };
 
@@ -280,7 +290,7 @@ async function payMethods(tradeId) {
 }
 
 /** 网络图标：优先本地 SVG，缺失时返回 null 由 UI 画首字母圆标 */
-const ICON_NETWORKS = ['aptos', 'arbitrum', 'base', 'bsc', 'ethereum', 'plasma', 'polygon', 'solana', 'ton', 'tron', 'xlayer'];
+const ICON_NETWORKS = ['aptos', 'arbitrum', 'base', 'binancepay', 'bsc', 'ethereum', 'plasma', 'polygon', 'solana', 'ton', 'tron', 'xlayer'];
 function networkIcon(network) {
   const key = String(network || '').toLowerCase();
   return ICON_NETWORKS.includes(key) ? `/checkout/oneclick/assets/icons/${key}.svg` : null;
@@ -479,6 +489,12 @@ async function createTransaction(btn) {
 }
 
 function setupPayment(order, trade) {
+  // 币安 Pay：UID + 精确金额引导（币安 App 内转账，无链上地址/二维码标准）
+  if (trade.chain.kind === 'binancepay') {
+    setupBinancePay(order);
+    return;
+  }
+
   const { uri, kind } = buildPaymentUri(trade, {
     address: order.token,
     amount: order.actual_amount,
@@ -530,6 +546,16 @@ function setupPayment(order, trade) {
     hint.hidden = true;
   }
   $('manualBlock').hidden = false;
+}
+
+// 币安 Pay 支付页：UID + 精确金额复制引导，无扫码/钱包/手动转账区
+function setupBinancePay(order) {
+  $('binanceUidText').textContent = order.token || '--';
+  $('binanceAmountText').textContent = order.actual_amount;
+  $('qrSection').hidden = true;
+  $('manualBlock').hidden = true;
+  $('walletSection').hidden = true;
+  $('binanceSection').hidden = false;
 }
 
 async function onPayClick() {
@@ -794,6 +820,12 @@ async function boot() {
   });
   $('copyAmount').addEventListener('click', () => {
     copyText(state.order ? state.order.actual_amount : '', $('copyAmount'));
+  });
+  $('copyBinanceUid').addEventListener('click', () => {
+    copyText(state.order ? state.order.token : '', $('copyBinanceUid'));
+  });
+  $('copyBinanceAmount').addEventListener('click', () => {
+    copyText(state.order ? state.order.actual_amount : '', $('copyBinanceAmount'));
   });
   $('paidBtn').addEventListener('click', () => {
     state.paidClicked = true;

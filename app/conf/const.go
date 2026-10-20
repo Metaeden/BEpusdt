@@ -24,6 +24,8 @@ const (
 	Arbitrum = "arbitrum"
 	Ethereum = "ethereum"
 	Base     = "base"
+
+	BinancePay = "binancepay" // 币安 Pay 内部转账（非链上网络）
 )
 
 const (

@@ -149,6 +149,32 @@
                 </div>
             </details>
 
+            <!-- 币安 Pay 转账引导（UID + 精确金额，无扫码标准） -->
+            <div class="pay-section" id="binanceSection" hidden>
+                <div class="pay-section-label" data-i18n="binancePayLabel">币安 Pay 转账</div>
+                <ol class="bp-steps">
+                    <li data-i18n="bpStep1">打开币安 App，进入「支付」→「转账」</li>
+                    <li data-i18n="bpStep2">选择 USDT，收款方式选「向 UID 付款」</li>
+                    <li data-i18n="bpStep3">粘贴收款 UID，并输入与订单完全一致的金额</li>
+                </ol>
+                <div class="fallback">
+                    <div class="field">
+                        <label data-i18n="binancePayUid">收款 UID</label>
+                        <div class="field-row">
+                            <code id="binanceUidText">--</code>
+                            <button class="copy" id="copyBinanceUid" data-i18n="copy" type="button">复制</button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label data-i18n="amount">金额</label>
+                        <div class="field-row">
+                            <code id="binanceAmountText">--</code>
+                            <button class="copy" id="copyBinanceAmount" data-i18n="copy" type="button">复制</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 等待支付状态条 -->
             <div class="pay-status">
                 <span class="pulse"></span>

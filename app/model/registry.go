@@ -301,6 +301,16 @@ var registry = map[TradeType]TradeTypeConf{
 		EndpointKey:  RpcGlobalConfigUrlTon,
 		AddrCaseSens: true,
 	},
+	BinancePayUsdt: {
+		Alias:       "USDT・Binance Pay",
+		NetworkName: "Binance Pay",
+		Network:     conf.BinancePay,
+		Crypto:      USDT,
+		Decimal:     -2, // 币安 Pay 金额精度，非链上精度
+		AmountRange: usdGeneralRange,
+		// 无合约 / 区块浏览器 / RPC 端点：内部转账非链上交易，由 app/task/binancepay.go 轮询确认
+		AddrCaseSens: true,
+	},
 }
 
 func init() {

@@ -76,6 +76,16 @@ test('resolveTrade: 原生币', () => {
   assert.equal(gram.decimals, 9);
 });
 
+test('resolveTrade: 币安 Pay 内部转账', () => {
+  const bp = resolveTrade('binancepay.usdt');
+  assert.equal(bp.chainKey, 'binancepay');
+  assert.equal(bp.chain.kind, 'binancepay');
+  assert.equal(bp.crypto, 'USDT');
+  assert.equal(bp.contract, null);
+  assert.equal(bp.decimals, 2);
+  assert.equal(bp.native, false);
+});
+
 test('resolveTrade: 非法输入', () => {
   assert.equal(resolveTrade(''), null);
   assert.equal(resolveTrade(null), null);

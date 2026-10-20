@@ -116,7 +116,10 @@ const getConf = async () => {
         "mqtt_publish_qos",
         "mqtt_networks",
         "mqtt_topic_prefix",
-        "home_redirect_url"
+        "home_redirect_url",
+        "binancepay_api_key",
+        "binancepay_api_secret",
+        "binancepay_poll_second"
       ]
     });
     Conf.value = data.data;

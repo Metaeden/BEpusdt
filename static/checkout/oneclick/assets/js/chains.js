@@ -122,6 +122,19 @@ export const CHAINS = {
       USDC: { contract: '0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b', decimals: 6 },
     },
   },
+  binancepay: {
+    kind: 'binancepay',
+    name: 'Binance Pay',
+    // 币安账户内部转账，非链上网络：无 RPC / 合约 / 区块浏览器
+    tokens: {
+      USDT: { contract: null, decimals: 2 },
+    },
+  },
+};
+
+/** 完整 trade_type 覆盖：crypto 段不是币种的特殊类型（binancepay.usdt 的币种固定为 USDT） */
+const TRADE_TYPE_OVERRIDES = {
+  'binancepay.usdt': { networkKey: 'binancepay', crypto: 'USDT' },
 };
 
 /** trade_type 前缀 → network 键（usdt.trc20 → tron 等） */
@@ -149,7 +162,22 @@ const TRADE_TYPE_NETWORK = {
  */
 export function resolveTrade(tradeType) {
   if (!tradeType || typeof tradeType !== 'string') return null;
-  const [crypto, suffix] = tradeType.toLowerCase().split('.');
+  const lower = tradeType.toLowerCase();
+  const override = TRADE_TYPE_OVERRIDES[lower];
+  if (override) {
+    const chain = CHAINS[override.networkKey];
+    if (!chain) return null;
+    const token = chain.tokens[override.crypto] || { contract: null, decimals: 18 };
+    return {
+      chainKey: override.networkKey,
+      chain,
+      crypto: override.crypto,
+      contract: token.contract,
+      decimals: token.decimals,
+      native: false,
+    };
+  }
+  const [crypto, suffix] = lower.split('.');
   const networkKey = TRADE_TYPE_NETWORK[suffix];
   if (!networkKey) return null;
   const chain = CHAINS[networkKey];

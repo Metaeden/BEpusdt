@@ -88,6 +88,11 @@ const (
 	NotifierParams  ConfKey = "notifier_params"  // 通知参数 (token, chat_id, email
 	NotifierChannel ConfKey = "notifier_channel" // 通知渠道 (telegram, wechat, email
 
+	BinancePayApiKey     ConfKey = "binancepay_api_key"     // 币安 Pay 只读 API Key
+	BinancePayApiSecret  ConfKey = "binancepay_api_secret"  // 币安 Pay API Secret
+	BinancePayApiBase    ConfKey = "binancepay_api_base"    // 币安 API 地址
+	BinancePayPollSecond ConfKey = "binancepay_poll_second" // 币安 Pay 流水轮询间隔，单位秒
+
 	SystemInstallLock ConfKey = "system_install_lock" // 系统安装锁
 	HomeRedirectUrl   ConfKey = "home_redirect_url"
 )

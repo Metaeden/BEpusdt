@@ -139,6 +139,18 @@ func IsValidAptosAddress(address string) bool {
 	return matched
 }
 
+// IsValidBinanceUID 币安账号 UID 为纯数字（当前 8~10 位，放宽以兼容后续变化）
+func IsValidBinanceUID(uid string) bool {
+	if len(uid) < 5 || len(uid) > 20 {
+
+		return false
+	}
+
+	matched, _ := regexp.MatchString(`^[1-9][0-9]*$`, uid)
+
+	return matched
+}
+
 func MaskAddress(address string) string {
 	if len(address) <= 20 {
 
