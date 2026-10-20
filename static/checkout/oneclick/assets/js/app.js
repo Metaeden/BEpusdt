@@ -73,6 +73,8 @@ const STRINGS = {
     orderNo: '订单号',
     network: '网络',
     paidBtn: '我已完成支付',
+    paidChecking: '正在查询到账结果，若已付款通常几秒内自动确认',
+    paidCheckFail: '到账查询失败，请稍后重试',
     confirmingTitle: '等待链上确认',
     confirmingHint: '已检测到付款，正在等待区块确认…',
     viewTx: '在区块浏览器查看',
@@ -139,6 +141,8 @@ const STRINGS = {
     orderNo: 'Order',
     network: 'Network',
     paidBtn: 'I have paid',
+    paidChecking: 'Checking payment — if paid, it usually auto-confirms within seconds',
+    paidCheckFail: 'Payment check failed, please try again later',
     confirmingTitle: 'Waiting for confirmation',
     confirmingHint: 'Payment detected. Waiting for block confirmations…',
     viewTx: 'View on explorer',
@@ -863,16 +867,30 @@ async function boot() {
   $('copyBinanceAmount').addEventListener('click', () => {
     copyText(state.order ? state.order.actual_amount : '', $('copyBinanceAmount'));
   });
-  $('paidBtn').addEventListener('click', () => {
+  $('paidBtn').addEventListener('click', async () => {
     state.paidClicked = true;
-    // 币安 Pay 订单：顺带触发一次服务端即时扫描（fire-and-forget，节流由后端控制）
+    const status = $('statusText');
+
+    // 币安 Pay 订单：触发服务端即时扫描，并给出可见反馈（流水未到时页面原本毫无变化）
     if (state.trade && state.trade.chain.kind === 'binancepay') {
-      fetch('/api/v1/pay/paid', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trade_id: state.tradeId }),
-      }).catch(() => {});
+      status.textContent = t('paidChecking');
+      status.hidden = false;
+      try {
+        const res = await fetch('/api/v1/pay/paid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trade_id: state.tradeId }),
+        });
+        const json = await res.json();
+        // 「订单状态无需扫描」等业务错误如实展示，不让按钮显得失灵
+        if (json && json.status_code !== 200 && json.message) {
+          status.textContent = json.message;
+        }
+      } catch (e) {
+        status.textContent = t('paidCheckFail');
+      }
     }
+
     pollOnce();
   });
 
