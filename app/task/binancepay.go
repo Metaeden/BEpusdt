@@ -25,7 +25,11 @@ import (
 // 以「唯一金额 + 时间窗口」匹配等待支付订单，到账即最终确认（币安内部转账，无链上确认过程）。
 // 订单金额唯一性由 CalcTradeAmount 保证（收款 UID 钱包行 + 原子精度递增），金额即指纹。
 
-const binancePayCurrency = "USDT"
+// binancePayCurrencies 币安 Pay 流水支持的币种（与 BinancePayTool 默认白名单一致）
+var binancePayCurrencies = map[string]struct{}{
+	"USDT": {},
+	"USDC": {},
+}
 
 // binanceTxn 对应 GET /sapi/v1/pay/transactions 返回的一条流水。
 // 字段以真实账号接口实测为准（文档缺 orderId/note/counterpartyId，实测存在）。
@@ -138,6 +142,7 @@ func binancePayHandle(context.Context) {
 	}
 
 	wallets := model.GetAvailableWallets(model.BinancePayUsdt)
+	wallets = append(wallets, model.GetAvailableWallets(model.BinancePayUsdc)...)
 	if len(wallets) == 0 {
 		return
 	}
@@ -151,7 +156,8 @@ func binancePayHandle(context.Context) {
 // binancePayScan 拉取流水并尝试匹配订单；没有待支付订单时不调币安接口，节省接口权重
 func binancePayScan(c *binancePayClient) error {
 	var orders []model.Order
-	model.Db.Where("status = ? and trade_type = ?", model.OrderStatusWaiting, model.BinancePayUsdt).
+	model.Db.Where("status = ? and trade_type in (?)", model.OrderStatusWaiting,
+		[]model.TradeType{model.BinancePayUsdt, model.BinancePayUsdc}).
 		Order("created_at asc").Find(&orders)
 	if len(orders) == 0 {
 		return nil
@@ -179,13 +185,20 @@ func binancePayScan(c *binancePayClient) error {
 		}
 
 		amt, err := decimal.NewFromString(t.Amount)
-		if err != nil || amt.Sign() <= 0 || !strings.EqualFold(t.Currency, binancePayCurrency) {
-			continue // 非入账或非 USDT
+		if err != nil || amt.Sign() <= 0 {
+			continue // 非入账
+		}
+		if _, ok := binancePayCurrencies[strings.ToUpper(t.Currency)]; !ok {
+			continue // 非支持币种
 		}
 
 		for i := range orders {
 			o := &orders[i]
 			if amounts[i].IsZero() || !amounts[i].Equal(amt) {
+				continue
+			}
+			// 币种必须与订单一致：USDT 订单不能被 USDC 入账核销
+			if !strings.EqualFold(string(o.Crypto), t.Currency) {
 				continue
 			}
 			if _, done := matched[o.ID]; done {

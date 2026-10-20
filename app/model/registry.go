@@ -311,6 +311,15 @@ var registry = map[TradeType]TradeTypeConf{
 		// 无合约 / 区块浏览器 / RPC 端点：内部转账非链上交易，由 app/task/binancepay.go 轮询确认
 		AddrCaseSens: true,
 	},
+	BinancePayUsdc: {
+		Alias:        "USDC・Binance Pay",
+		NetworkName:  "Binance Pay",
+		Network:      conf.BinancePay,
+		Crypto:       USDC,
+		Decimal:      -2,
+		AmountRange:  usdGeneralRange,
+		AddrCaseSens: true,
+	},
 }
 
 func init() {

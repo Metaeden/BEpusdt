@@ -54,6 +54,7 @@ const (
 	UsdtTon      TradeType = "usdt.ton"
 
 	BinancePayUsdt TradeType = "binancepay.usdt"
+	BinancePayUsdc TradeType = "binancepay.usdc"
 )
 
 const (

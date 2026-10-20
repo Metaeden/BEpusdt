@@ -79,7 +79,7 @@ func (wa *Wallet) Validate() error {
 		}
 		wa.MatchAddr = owner.Bounce(false).String()
 		return nil
-	case BinancePayUsdt:
+	case BinancePayUsdt, BinancePayUsdc:
 		// 币安 Pay 收款：地址字段存收款账号的币安 UID（纯数字），非链上地址
 		if !utils.IsValidBinanceUID(wa.Address) {
 			return errors.New("币安 Pay 收款账号需填写纯数字币安 UID，请检查")

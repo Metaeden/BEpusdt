@@ -104,7 +104,7 @@ const STRINGS = {
     binancePayLabel: '币安 Pay 转账',
     binancePayUid: '收款 UID',
     bpStep1: '打开币安 App，进入「支付」→「转账」',
-    bpStep2: '选择 USDT，收款方式选「向 UID 付款」',
+    bpStep2: '选择 {cur}，收款方式选「向 UID 付款」',
     bpStep3: '粘贴收款 UID，并输入与订单完全一致的金额',
   },
   en: {
@@ -162,7 +162,7 @@ const STRINGS = {
     binancePayLabel: 'Binance Pay transfer',
     binancePayUid: 'Receiving UID',
     bpStep1: 'Open the Binance app, go to Pay → Transfer',
-    bpStep2: 'Pick USDT and choose "Send to UID"',
+    bpStep2: 'Pick {cur} and choose "Send to UID"',
     bpStep3: 'Paste the UID and enter the exact order amount',
   },
 };
@@ -556,6 +556,11 @@ function setupBinancePay(order) {
   $('manualBlock').hidden = true;
   $('walletSection').hidden = true;
   $('binanceSection').hidden = false;
+
+  // 步骤文案里的币种随订单变化（USDT / USDC）
+  const cur = String(order.currency || '').toUpperCase();
+  const step2 = document.querySelector('[data-i18n="bpStep2"]');
+  if (step2) step2.textContent = t('bpStep2').replace('{cur}', cur);
 }
 
 async function onPayClick() {

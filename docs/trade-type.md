@@ -16,6 +16,6 @@
 |     Base     |                 |   `usdc.base`   |                |
 |    Plasma    |  `usdt.plasma`  |                 |                |
 |     Ton      |   `usdt.ton`    |                 |   `ton.gram`   |
-| Binance Pay  | `binancepay.usdt` |              |                |
+| Binance Pay  | `binancepay.usdt` | `binancepay.usdc` |                |
 
 ---

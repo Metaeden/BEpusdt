@@ -59,7 +59,13 @@ func newBinancePayTestClient(t *testing.T, m *mockBinancePay) (*binancePayClient
 func createBinancePayWallet(t *testing.T) model.Wallet {
 	t.Helper()
 
-	wa := model.Wallet{Name: "币安收款", Status: model.WaStatusEnable, Address: testBinanceUID, TradeType: string(model.BinancePayUsdt)}
+	return createBinancePayWalletFor(t, model.BinancePayUsdt)
+}
+
+func createBinancePayWalletFor(t *testing.T, tradeType model.TradeType) model.Wallet {
+	t.Helper()
+
+	wa := model.Wallet{Name: "币安收款", Status: model.WaStatusEnable, Address: testBinanceUID, TradeType: string(tradeType)}
 	if err := wa.Validate(); err != nil {
 		t.Fatalf("wallet validate: %v", err)
 	}
@@ -73,18 +79,18 @@ func createBinancePayWallet(t *testing.T) model.Wallet {
 func createBinancePayOrder(t *testing.T, tradeID, amount string, created time.Time) model.Order {
 	t.Helper()
 
-	return createBinancePayOrderNotify(t, tradeID, amount, created, "", model.OrderApiTypeAdmin)
+	return createBinancePayOrderNotify(t, tradeID, amount, created, "", model.OrderApiTypeAdmin, model.BinancePayUsdt, model.USDT)
 }
 
-func createBinancePayOrderNotify(t *testing.T, tradeID, amount string, created time.Time, notifyUrl, apiType string) model.Order {
+func createBinancePayOrderNotify(t *testing.T, tradeID, amount string, created time.Time, notifyUrl, apiType string, tradeType model.TradeType, crypto model.Crypto) model.Order {
 	t.Helper()
 
 	return createTestOrder(t, model.Order{
 		OrderId:      "merchant-" + tradeID,
 		TradeId:      tradeID,
-		TradeType:    model.BinancePayUsdt,
+		TradeType:    tradeType,
 		Fiat:         model.CNY,
-		Crypto:       model.USDT,
+		Crypto:       crypto,
 		Rate:         "7.20",
 		Amount:       amount,
 		Money:        "88.85",
@@ -98,13 +104,17 @@ func createBinancePayOrderNotify(t *testing.T, tradeID, amount string, created t
 }
 
 func incomingBinanceTxn(txnID, amount string, at time.Time) binanceTxn {
+	return incomingBinanceTxnCur(txnID, amount, at, "USDT")
+}
+
+func incomingBinanceTxnCur(txnID, amount string, at time.Time, currency string) binanceTxn {
 	txn := binanceTxn{
 		OrderID:        "45202192200000000" + txnID[len(txnID)-1:],
 		OrderType:      "C2C",
 		TransactionID:  txnID,
 		Time:           at.UnixMilli(),
 		Amount:         amount,
-		Currency:       "USDT",
+		Currency:       currency,
 		CounterpartyID: 1163000000,
 	}
 	txn.PayerInfo.Name = "tester"
@@ -148,7 +158,7 @@ func TestBinancePayMatchAndConfirm(t *testing.T) {
 		incomingBinanceTxn("P_match0000000001", "12.34", created.Add(time.Minute)),
 	}}
 	client, baseURL := newBinancePayTestClient(t, m)
-	createBinancePayOrderNotify(t, "bp-match-1", "12.34", created, baseURL+"/notify", model.OrderApiTypeEpusdt)
+	createBinancePayOrderNotify(t, "bp-match-1", "12.34", created, baseURL+"/notify", model.OrderApiTypeEpusdt, model.BinancePayUsdt, model.USDT)
 
 	if err := binancePayScan(client); err != nil {
 		t.Fatalf("scan: %v", err)
@@ -255,5 +265,53 @@ func TestBinancePayEmptyConfNoop(t *testing.T) {
 	}
 	if model.GetC(model.BinancePayApiKey) != "" {
 		t.Fatal("api key should be empty")
+	}
+}
+
+func TestBinancePayUsdcMatchAndConfirm(t *testing.T) {
+	initTaskTestEnv(t, nil)
+	createBinancePayWalletFor(t, model.BinancePayUsdc)
+
+	created := time.Now().Add(-5 * time.Minute)
+	m := &mockBinancePay{txns: []binanceTxn{
+		incomingBinanceTxnCur("P_usdc00000000001", "25.50", created.Add(time.Minute), "USDC"),
+	}}
+	client, baseURL := newBinancePayTestClient(t, m)
+	createBinancePayOrderNotify(t, "bp-usdc-1", "25.50", created, baseURL+"/notify", model.OrderApiTypeEpusdt, model.BinancePayUsdc, model.USDC)
+
+	if err := binancePayScan(client); err != nil {
+		t.Fatalf("scan: %v", err)
+	}
+
+	o := getTestOrder(t, "bp-usdc-1")
+	if o.Status != model.OrderStatusSuccess {
+		t.Fatalf("status = %d, want success", o.Status)
+	}
+	if o.RefHash != "P_usdc00000000001" {
+		t.Fatalf("ref_hash = %q", o.RefHash)
+	}
+
+	waitOrderNotified(t, "bp-usdc-1")
+}
+
+// USDC 入账不得核销 USDT 订单
+func TestBinancePayCurrencyMismatch(t *testing.T) {
+	initTaskTestEnv(t, nil)
+	createBinancePayWallet(t)
+
+	created := time.Now().Add(-5 * time.Minute)
+	createBinancePayOrder(t, "bp-cur-1", "12.34", created)
+
+	m := &mockBinancePay{txns: []binanceTxn{
+		incomingBinanceTxnCur("P_cur000000000001", "12.34", created.Add(time.Minute), "USDC"),
+	}}
+	client, _ := newBinancePayTestClient(t, m)
+	if err := binancePayScan(client); err != nil {
+		t.Fatalf("scan: %v", err)
+	}
+
+	o := getTestOrder(t, "bp-cur-1")
+	if o.Status != model.OrderStatusWaiting {
+		t.Fatalf("status = %d, want waiting", o.Status)
 	}
 }

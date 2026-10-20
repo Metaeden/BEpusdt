@@ -128,13 +128,15 @@ export const CHAINS = {
     // 币安账户内部转账，非链上网络：无 RPC / 合约 / 区块浏览器
     tokens: {
       USDT: { contract: null, decimals: 2 },
+      USDC: { contract: null, decimals: 2 },
     },
   },
 };
 
-/** 完整 trade_type 覆盖：crypto 段不是币种的特殊类型（binancepay.usdt 的币种固定为 USDT） */
+/** 完整 trade_type 覆盖：crypto 段不是币种的特殊类型（币安 Pay 内部转账，非链上） */
 const TRADE_TYPE_OVERRIDES = {
   'binancepay.usdt': { networkKey: 'binancepay', crypto: 'USDT' },
+  'binancepay.usdc': { networkKey: 'binancepay', crypto: 'USDC' },
 };
 
 /** trade_type 前缀 → network 键（usdt.trc20 → tron 等） */

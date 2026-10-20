@@ -407,6 +407,7 @@ func (Epusdt) Info(ctx *gin.Context) {
 		"actual_amount": order.Amount,                        // 实付数额
 		"token":         order.Address,                       // 收款地址
 		"fiat":          order.Fiat,                          // 法币类型
+		"currency":      order.Crypto,                        // 加密币种
 		"name":          order.Name,                          // 商品名称
 		"expired_at":    order.ExpiredAt.Unix(),              // 截止时间
 		"created_at":    order.CreatedAt.Time().Unix(),       // 创建时间
