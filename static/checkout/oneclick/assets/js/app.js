@@ -373,7 +373,6 @@ async function showSelect(order) {
   // 币种去重
   const currencies = [...new Set(state.methods.map((m) => m.currency))];
   state.selCurrency = currencies[0];
-  state.selMethod = null;
 
   // 商户配置的网络排序（逗号分隔）优先，未配置保持后端默认顺序
   const sortList = state.networkSort
@@ -386,6 +385,9 @@ async function showSelect(order) {
   const inOrder = (list) => (sortList.length ? [...list].sort((a, b) => sortRank(a) - sortRank(b)) : list);
 
   const defaultFor = (cur) => inOrder(state.methods.filter((m) => m.currency === cur))[0] || null;
+
+  // 默认预选排序第一的网络，页面落地即可支付（少一次点击）
+  state.selMethod = defaultFor(state.selCurrency);
 
   const syncHero = () => {
     if (state.selMethod) {
