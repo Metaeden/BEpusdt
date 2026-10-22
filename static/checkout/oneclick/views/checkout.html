@@ -9,231 +9,225 @@
 </head>
 <body>
 <div class="shell">
-    <main class="card" id="app" data-trade-id="{{ .trade_id }}">
+    <main class="frame" id="app" data-trade-id="{{ .trade_id }}">
 
-        <!-- 加载中 -->
-        <section class="state" id="stateLoading">
-            <div class="spinner"></div>
-            <p class="muted" data-i18n="loading">正在加载订单…</p>
-        </section>
-
-        <!-- 错误 -->
-        <section class="state" id="stateError" hidden>
-            <div class="icon-badge error">!</div>
-            <h1 data-i18n="errorTitle">订单不可用</h1>
-            <p class="muted" id="errorMessage"></p>
-        </section>
-
-        <!-- 选择支付方式（新订单尚未确定 trade_type 时显示） -->
-        <section id="stateSelect" hidden>
-            <header class="head">
-                <div class="brand">
-                    <span class="brand-dot"></span>
-                    <span data-i18n="brand">OneClick Pay</span>
-                </div>
-                <div class="timer" id="selectTimer" aria-live="polite">
-                    <span class="timer-label" data-i18n="timeLeft">剩余</span>
-                    <span class="timer-value" id="selectTimerValue">--:--</span>
-                </div>
+        <!-- 侧栏：订单摘要（常驻，深色墨蓝面板） -->
+        <aside class="side">
+            <div class="side-fx" aria-hidden="true"></div>
+            <header class="side-brand">
+                <span class="side-logo" aria-hidden="true"></span>
+                <span data-i18n="brand">OneClick Pay</span>
             </header>
-
-            <div class="order-hero">
-                <p class="order-hero-label" data-i18n="amountDue">应付金额</p>
-                <div class="order-hero-amount">
-                    <span id="selectFiat">--</span>
-                </div>
-                <p class="order-hero-sub">
-                    <span id="selectCryptoHint" data-i18n="selectHint">选择支付方式</span>
-                </p>
-            </div>
-
-            <div class="method-group">
-                <div class="method-head">
-                    <span class="method-label" data-i18n="currency">币种</span>
-                    <span class="method-note" data-i18n="currencyNote">选择您要支付的币种</span>
-                </div>
-                <div class="chips" id="currencyChips" role="radiogroup"></div>
-            </div>
-
-            <div class="method-group">
-                <div class="method-head">
-                    <span class="method-label" data-i18n="networkLabel">网络</span>
-                    <span class="method-note" data-i18n="networkNote">务必与钱包网络一致</span>
-                </div>
-                <div class="net-list" id="networkChips" role="radiogroup"></div>
-            </div>
-
-            <p class="net-warn" data-i18n="selectWarn">请确认收款网络与您钱包中的网络一致，选错网络将无法到账</p>
-
-            <button class="btn primary" id="selectPayBtn" disabled>
-                <span id="selectBtnLabel" data-i18n="continuePay">继续支付</span>
-            </button>
-            <p class="status" id="selectStatus" hidden></p>
-
-            <dl class="meta">
-                <div><dt data-i18n="orderNo">订单号</dt><dd id="selectOrderNo">--</dd></div>
-            </dl>
-        </section>
-
-        <!-- 主支付面板 -->
-        <section id="statePay" hidden>
-            <header class="head">
-                <div class="brand">
-                    <span class="brand-dot"></span>
-                    <span data-i18n="brand">OneClick Pay</span>
-                </div>
-                <div class="timer" id="timer" aria-live="polite">
-                    <span class="timer-label" data-i18n="timeLeft">剩余</span>
-                    <span class="timer-value" id="timerValue">--:--</span>
-                </div>
-            </header>
-
-            <!-- 订单摘要（Stripe 式左对齐） -->
-            <div class="summary">
-                <div class="summary-label" data-i18n="amountDue">应付金额</div>
-                <div class="summary-amount">
+            <div class="side-body">
+                <div class="side-label" data-i18n="amountDue">应付金额</div>
+                <div class="side-amount">
                     <span id="amountCrypto">--</span>
-                    <span class="amount-symbol" id="amountSymbol"></span>
+                    <small id="amountSymbol"></small>
                 </div>
-                <div class="summary-sub">
-                    <span id="amountFiat"></span>
-                    <span class="summary-dot">·</span>
-                    <span class="network-pill" id="networkPill"></span>
-                    <button class="reselect-link" id="reselectBtn" type="button" hidden data-i18n="reselect">更换支付方式</button>
-                </div>
+                <div class="side-fiat" id="amountFiat"></div>
+
+                <dl class="side-lines">
+                    <div class="side-line">
+                        <dt data-i18n="payMethod">支付方式</dt>
+                        <dd class="side-method">
+                            <span class="network-pill" id="networkPill" hidden></span>
+                            <button class="reselect-link" id="reselectBtn" type="button" hidden data-i18n="reselectShort">更换</button>
+                        </dd>
+                    </div>
+                    <div class="side-line">
+                        <dt data-i18n="productName">商品</dt>
+                        <dd id="sideName">--</dd>
+                    </div>
+                    <div class="side-line">
+                        <dt data-i18n="orderNo">订单号</dt>
+                        <dd class="side-order" id="orderNo">--</dd>
+                    </div>
+                </dl>
             </div>
+            <div class="side-timer timer" id="timer" aria-live="polite">
+                <span class="timer-label" data-i18n="timeLeft">剩余</span>
+                <span class="timer-value" id="timerValue">--:--</span>
+            </div>
+        </aside>
 
-            <p class="exact-hint">
-                <span class="warn-dot">!</span>
-                <span data-i18n="exactAmountHint">请务必精确支付此金额，多付或少付都会导致无法自动到账</span>
-            </p>
+        <!-- 右侧操作区 -->
+        <div class="pane">
 
-            <!-- 钱包支付（检测到插件钱包时显示） -->
-            <div class="pay-section" id="walletSection" hidden>
-                <div class="pay-section-label" data-i18n="walletPay">钱包支付</div>
-                <button class="btn primary" id="payWalletBtn">
-                    <span id="payBtnLabel" data-i18n="payWithWallet">一键支付</span>
+            <!-- 加载中 -->
+            <section class="state" id="stateLoading">
+                <div class="spinner"></div>
+                <p class="muted" data-i18n="loading">正在加载订单…</p>
+            </section>
+
+            <!-- 错误 -->
+            <section class="state" id="stateError" hidden>
+                <div class="icon-badge error">!</div>
+                <h1 data-i18n="errorTitle">订单不可用</h1>
+                <p class="muted" id="errorMessage"></p>
+            </section>
+
+            <!-- 选择支付方式（新订单尚未确定 trade_type 时显示） -->
+            <section id="stateSelect" hidden>
+                <div class="pane-head">
+                    <h2 class="pane-title" data-i18n="selectTitle">选择支付方式</h2>
+                    <p class="pane-sub" id="selectCryptoHint" data-i18n="selectHint">选择支付方式</p>
+                </div>
+
+                <div class="method-group">
+                    <div class="method-head">
+                        <span class="method-label" data-i18n="currency">币种</span>
+                        <span class="method-note" data-i18n="currencyNote">选择您要支付的币种</span>
+                    </div>
+                    <div class="chips" id="currencyChips" role="radiogroup"></div>
+                </div>
+
+                <div class="method-group">
+                    <div class="method-head">
+                        <span class="method-label" data-i18n="networkLabel">网络</span>
+                        <span class="method-note" data-i18n="networkNote">务必与钱包网络一致</span>
+                    </div>
+                    <div class="net-list" id="networkChips" role="radiogroup"></div>
+                </div>
+
+                <p class="net-warn" data-i18n="selectWarn">请确认收款网络与您钱包中的网络一致，选错网络将无法到账</p>
+
+                <button class="btn primary" id="selectPayBtn" disabled>
+                    <span id="selectBtnLabel" data-i18n="continuePay">继续支付</span>
                 </button>
-            </div>
+                <p class="status" id="selectStatus" hidden></p>
+            </section>
 
-            <!-- 扫码支付 -->
-            <div class="pay-section" id="qrSection" hidden>
-                <div class="pay-section-label" data-i18n="scanPay">扫码支付</div>
-                <div class="qr-block" id="qrBlock" hidden>
-                    <div class="qr-frame" id="qrFrame"></div>
-                    <p class="qr-hint" id="qrHint" data-i18n="scanHint">使用钱包 App 扫码支付</p>
+            <!-- 主支付面板 -->
+            <section id="statePay" hidden>
+                <p class="exact-hint">
+                    <span class="warn-dot">!</span>
+                    <span data-i18n="exactAmountHint">请务必精确支付此金额，多付或少付都会导致无法自动到账</span>
+                </p>
+
+                <!-- 钱包支付（检测到插件钱包时显示） -->
+                <div class="pay-section" id="walletSection" hidden>
+                    <div class="pay-section-label" data-i18n="walletPay">钱包支付</div>
+                    <button class="btn primary" id="payWalletBtn">
+                        <span id="payBtnLabel" data-i18n="payWithWallet">一键支付</span>
+                    </button>
                 </div>
-            </div>
 
-            <!-- 手动转账（地址/金额复制） -->
-            <details class="manual" id="manualBlock" hidden>
-                <summary id="manualSummary" data-i18n="manualTransfer">手动转账</summary>
-                <div class="manual-body" id="manualBody">
-                    <div class="fallback" id="fallbackBlock">
+                <!-- 扫码支付 -->
+                <div class="pay-section" id="qrSection" hidden>
+                    <div class="pay-section-label" data-i18n="scanPay">扫码支付</div>
+                    <div class="qr-block" id="qrBlock" hidden>
+                        <div class="qr-frame" id="qrFrame"></div>
+                        <p class="qr-hint" id="qrHint" data-i18n="scanHint">使用钱包 App 扫码支付</p>
+                    </div>
+                </div>
+
+                <!-- 手动转账（地址/金额复制） -->
+                <details class="manual" id="manualBlock" hidden>
+                    <summary id="manualSummary" data-i18n="manualTransfer">手动转账</summary>
+                    <div class="manual-body" id="manualBody">
+                        <div class="fallback" id="fallbackBlock">
+                            <div class="field">
+                                <label data-i18n="address">收款地址</label>
+                                <div class="field-row">
+                                    <code id="addressText">--</code>
+                                    <button class="copy" id="copyAddress" data-i18n="copy" type="button">复制</button>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label data-i18n="amount">金额</label>
+                                <div class="field-row">
+                                    <code id="amountText">--</code>
+                                    <button class="copy" id="copyAmount" data-i18n="copy" type="button">复制</button>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="hint" id="walletHint" hidden></p>
+                    </div>
+                </details>
+
+                <!-- 币安 Pay 转账引导（UID + 精确金额，无扫码标准） -->
+                <div class="pay-section" id="binanceSection" hidden>
+                    <div class="pay-section-label" data-i18n="binancePayLabel">币安 Pay 转账</div>
+                    <ol class="bp-steps">
+                        <li data-i18n="bpStep1">打开币安 App，进入「支付」→「转账」</li>
+                        <li data-i18n="bpStep2">选择 USDT，收款方式选「向 UID 付款」</li>
+                        <li data-i18n="bpStep3">粘贴收款 UID，并输入与订单完全一致的金额</li>
+                    </ol>
+                    <div class="fallback">
                         <div class="field">
-                            <label data-i18n="address">收款地址</label>
+                            <label data-i18n="binancePayUid">收款 UID</label>
                             <div class="field-row">
-                                <code id="addressText">--</code>
-                                <button class="copy" id="copyAddress" data-i18n="copy" type="button">复制</button>
+                                <code id="binanceUidText">--</code>
+                                <button class="copy" id="copyBinanceUid" data-i18n="copy" type="button">复制</button>
                             </div>
                         </div>
                         <div class="field">
                             <label data-i18n="amount">金额</label>
                             <div class="field-row">
-                                <code id="amountText">--</code>
-                                <button class="copy" id="copyAmount" data-i18n="copy" type="button">复制</button>
+                                <code id="binanceAmountText">--</code>
+                                <button class="copy" id="copyBinanceAmount" data-i18n="copy" type="button">复制</button>
                             </div>
                         </div>
                     </div>
-                    <p class="hint" id="walletHint" hidden></p>
-                </div>
-            </details>
-
-            <!-- 币安 Pay 转账引导（UID + 精确金额，无扫码标准） -->
-            <div class="pay-section" id="binanceSection" hidden>
-                <div class="pay-section-label" data-i18n="binancePayLabel">币安 Pay 转账</div>
-                <ol class="bp-steps">
-                    <li data-i18n="bpStep1">打开币安 App，进入「支付」→「转账」</li>
-                    <li data-i18n="bpStep2">选择 USDT，收款方式选「向 UID 付款」</li>
-                    <li data-i18n="bpStep3">粘贴收款 UID，并输入与订单完全一致的金额</li>
-                </ol>
-                <div class="fallback">
-                    <div class="field">
-                        <label data-i18n="binancePayUid">收款 UID</label>
-                        <div class="field-row">
-                            <code id="binanceUidText">--</code>
-                            <button class="copy" id="copyBinanceUid" data-i18n="copy" type="button">复制</button>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label data-i18n="amount">金额</label>
-                        <div class="field-row">
-                            <code id="binanceAmountText">--</code>
-                            <button class="copy" id="copyBinanceAmount" data-i18n="copy" type="button">复制</button>
-                        </div>
-                    </div>
-                </div>
-                <button class="btn primary" id="bpOpenAppBtn" type="button" hidden data-i18n="bpOpenApp">打开币安 App</button>
-                <!-- 金额付错时的自助找回：粘贴币安订单编号回填 -->
-                <details class="manual" id="bpClaimBlock">
-                    <summary data-i18n="bpClaimSummary">金额付错了？回填订单编号找回</summary>
-                    <div class="manual-body">
-                        <div class="field">
-                            <label data-i18n="bpClaimLabel">币安 App「订单编号」（18 位数字）</label>
-                            <div class="field-row">
-                                <input class="claim-input" id="claimInput" type="text" inputmode="numeric"
-                                    autocomplete="off" maxlength="24" />
-                                <button class="copy" id="claimBtn" data-i18n="bpClaimBtn" type="button">回填找回</button>
+                    <button class="btn primary" id="bpOpenAppBtn" type="button" hidden data-i18n="bpOpenApp">打开币安 App</button>
+                    <!-- 金额付错时的自助找回：粘贴币安订单编号回填 -->
+                    <details class="manual" id="bpClaimBlock">
+                        <summary data-i18n="bpClaimSummary">金额付错了？回填订单编号找回</summary>
+                        <div class="manual-body">
+                            <div class="field">
+                                <label data-i18n="bpClaimLabel">币安 App「订单编号」（18 位数字）</label>
+                                <div class="field-row">
+                                    <input class="claim-input" id="claimInput" type="text" inputmode="numeric"
+                                        autocomplete="off" maxlength="24" />
+                                    <button class="copy" id="claimBtn" data-i18n="bpClaimBtn" type="button">回填找回</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </details>
-            </div>
+                    </details>
+                </div>
 
-            <!-- 等待支付状态条 -->
-            <div class="pay-status">
-                <span class="pulse"></span>
-                <span data-i18n="waitingPay">等待支付，到账后自动确认</span>
-            </div>
-            <p class="status" id="statusText" hidden></p>
+                <!-- 等待支付状态条 -->
+                <div class="pay-status">
+                    <span class="pulse"></span>
+                    <span data-i18n="waitingPay">等待支付，到账后自动确认</span>
+                </div>
+                <p class="status" id="statusText" hidden></p>
 
-            <div class="pay-footer">
-                <button class="link-btn" id="paidBtn" data-i18n="paidBtn" type="button">我已完成支付</button>
-                <span class="summary-dot">·</span>
-                <span data-i18n="orderNo">订单号</span>
-                <code class="footer-order" id="orderNo">--</code>
-            </div>
-        </section>
+                <div class="pay-footer">
+                    <button class="link-btn" id="paidBtn" data-i18n="paidBtn" type="button">我已完成支付</button>
+                </div>
+            </section>
 
-        <!-- 确认中 -->
-        <section class="state" id="stateConfirming" hidden>
-            <div class="spinner"></div>
-            <h1 data-i18n="confirmingTitle">等待链上确认</h1>
-            <p class="muted" data-i18n="confirmingHint">已检测到付款，正在等待区块确认…</p>
-            <a class="tx-link" id="txLinkConfirming" hidden target="_blank" rel="noopener noreferrer" data-i18n="viewTx">在区块浏览器查看</a>
-        </section>
+            <!-- 确认中 -->
+            <section class="state" id="stateConfirming" hidden>
+                <div class="spinner"></div>
+                <h1 data-i18n="confirmingTitle">等待链上确认</h1>
+                <p class="muted" data-i18n="confirmingHint">已检测到付款，正在等待区块确认…</p>
+                <a class="tx-link" id="txLinkConfirming" hidden target="_blank" rel="noopener noreferrer" data-i18n="viewTx">在区块浏览器查看</a>
+            </section>
 
-        <!-- 成功 -->
-        <section class="state" id="stateSuccess" hidden>
-            <div class="icon-badge success">✓</div>
-            <h1 data-i18n="successTitle">支付成功</h1>
-            <p class="muted" data-i18n="successHint">交易已确认，感谢您的付款</p>
-            <a class="tx-link" id="txLinkSuccess" hidden target="_blank" rel="noopener noreferrer" data-i18n="viewTx">在区块浏览器查看</a>
-            <a class="btn primary" id="returnBtn" hidden data-i18n="returnMerchant">返回商户</a>
-        </section>
+            <!-- 成功 -->
+            <section class="state" id="stateSuccess" hidden>
+                <div class="icon-badge success">✓</div>
+                <h1 data-i18n="successTitle">支付成功</h1>
+                <p class="muted" data-i18n="successHint">交易已确认，感谢您的付款</p>
+                <a class="tx-link" id="txLinkSuccess" hidden target="_blank" rel="noopener noreferrer" data-i18n="viewTx">在区块浏览器查看</a>
+                <a class="btn primary" id="returnBtn" hidden data-i18n="returnMerchant">返回商户</a>
+            </section>
 
-        <!-- 过期/取消 -->
-        <section class="state" id="stateClosed" hidden>
-            <div class="icon-badge neutral">⏱</div>
-            <h1 id="closedTitle" data-i18n="expiredTitle">订单已过期</h1>
-            <p class="muted" data-i18n="expiredHint">请返回商户重新下单</p>
-            <a class="tx-link" id="supportLink" hidden target="_blank" rel="noopener noreferrer" data-i18n="contactSupport">联系客服</a>
-        </section>
+            <!-- 过期/取消 -->
+            <section class="state" id="stateClosed" hidden>
+                <div class="icon-badge neutral">⏱</div>
+                <h1 id="closedTitle" data-i18n="expiredTitle">订单已过期</h1>
+                <p class="muted" data-i18n="expiredHint">请返回商户重新下单</p>
+                <a class="tx-link" id="supportLink" hidden target="_blank" rel="noopener noreferrer" data-i18n="contactSupport">联系客服</a>
+            </section>
 
-        <footer class="foot">
-            <span data-i18n="poweredBy">Powered by</span>
-            <a href="https://github.com/v03413/BEpusdt" target="_blank" rel="noopener noreferrer">BEpusdt</a>
-        </footer>
+            <footer class="foot">
+                <span data-i18n="poweredBy">Powered by</span>
+                <a href="https://github.com/v03413/BEpusdt" target="_blank" rel="noopener noreferrer">BEpusdt</a>
+            </footer>
+        </div>
     </main>
 </div>
 

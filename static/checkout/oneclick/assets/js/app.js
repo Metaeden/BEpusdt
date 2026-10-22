@@ -116,6 +116,11 @@ const STRINGS = {
     bpClaimOk: '回填成功，正在确认到账…',
     bpClaimFail: '回填未成功',
     contactSupport: '联系客服',
+    payMethod: '支付方式',
+    productName: '商品',
+    reselectShort: '更换',
+    selectTitle: '选择支付方式',
+    recommend: '推荐',
   },
   en: {
     loading: 'Loading order…',
@@ -184,6 +189,11 @@ const STRINGS = {
     bpClaimOk: 'Submitted, confirming receipt…',
     bpClaimFail: 'Recovery failed',
     contactSupport: 'Contact support',
+    payMethod: 'Payment',
+    productName: 'Item',
+    reselectShort: 'Change',
+    selectTitle: 'Choose how to pay',
+    recommend: 'Best',
   },
 };
 
@@ -264,9 +274,11 @@ function renderOrder(order) {
     pill.appendChild(pillGlyph);
   }
   pill.appendChild(document.createTextNode(netLabel));
+  pill.hidden = false;
   $('addressText').textContent = order.token;
   $('amountText').textContent = order.actual_amount;
   $('orderNo').textContent = order.order_id;
+  $('sideName').textContent = order.name || '--';
 
   if (!trade) {
     showError('Unsupported payment type: ' + order.trade_type);
@@ -340,9 +352,15 @@ function makeGlyph(network) {
 
 async function showSelect(order) {
   showOnly('stateSelect');
-  $('selectFiat').textContent = `${order.money} ${order.fiat}`;
-  $('selectOrderNo').textContent = order.order_id;
+  // 侧栏：选择阶段大金额显示法币，支付方式未定时隐藏
+  $('amountCrypto').textContent = `${order.money}`;
+  $('amountSymbol').textContent = order.fiat;
+  $('amountFiat').textContent = '';
+  $('networkPill').hidden = true;
+  $('sideName').textContent = order.name || '--';
+  $('orderNo').textContent = order.order_id;
   $('selectCryptoHint').textContent = t('selectHint');
+  $('reselectBtn').hidden = true;
   startCountdown(order.expired_at);
 
   const curBox = $('currencyChips');
@@ -460,7 +478,14 @@ async function showSelect(order) {
       mark.className = 'net-mark';
       mark.setAttribute('aria-hidden', 'true');
 
-      card.append(iconWrap, body, mark);
+      if (String(m.network || '').toLowerCase() === 'binancepay') {
+        const badge = document.createElement('span');
+        badge.className = 'rec-badge';
+        badge.textContent = t('recommend');
+        card.append(iconWrap, body, badge, mark);
+      } else {
+        card.append(iconWrap, body, mark);
+      }
       card.addEventListener('click', () => {
         state.selMethod = m;
         renderNetworks();
