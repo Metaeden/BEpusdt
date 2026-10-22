@@ -105,6 +105,8 @@ const getConf = async () => {
         "payment_support_url",
         "payment_checkout",
         "payment_network_sort",
+        "payment_currency_sort",
+        "payment_recommend",
         "payment_timeout",
         "payment_lookback_hour",
         "notifier_params",
@@ -116,7 +118,11 @@ const getConf = async () => {
         "mqtt_publish_qos",
         "mqtt_networks",
         "mqtt_topic_prefix",
-        "home_redirect_url"
+        "home_redirect_url",
+        "binancepay_api_key",
+        "binancepay_api_secret",
+        "binancepay_api_base",
+        "binancepay_poll_second"
       ]
     });
     Conf.value = data.data;

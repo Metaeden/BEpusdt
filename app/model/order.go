@@ -52,6 +52,9 @@ const (
 	UsdcAptos    TradeType = "usdc.aptos"
 	UsdtPlasma   TradeType = "usdt.plasma"
 	UsdtTon      TradeType = "usdt.ton"
+
+	BinancePayUsdt TradeType = "binancepay.usdt"
+	BinancePayUsdc TradeType = "binancepay.usdc"
 )
 
 const (
@@ -107,7 +110,8 @@ func (o *Order) SetCanceled() error {
 	core.New()
 	o.Status = OrderStatusCanceled
 
-	return Db.Save(o).Error
+	// 用列级更新代替 Save：GORM 会按 CreatedAt 字段名约定在 Save 时重写 created_at，导致创建时间漂移
+	return Db.Model(o).Update("status", o.Status).Error
 }
 
 // CanReselectPayment 判断订单是否支持重选交易类型
@@ -134,19 +138,19 @@ func (o *Order) MatchFingerprint(fingerprint string) bool {
 func (o *Order) SetExpired() {
 	o.Status = OrderStatusExpired
 
-	Db.Save(o)
+	Db.Model(o).Update("status", o.Status) // 列级更新，避免 Save 重写 created_at
 }
 
 func (o *Order) SetSuccess() {
 	o.Status = OrderStatusSuccess
 
-	Db.Save(o)
+	Db.Model(o).Update("status", o.Status) // 列级更新，避免 Save 重写 created_at
 }
 
 func (o *Order) SetFailed() {
 	o.Status = OrderStatusFailed
 
-	Db.Save(o)
+	Db.Model(o).Update("status", o.Status) // 列级更新，避免 Save 重写 created_at
 }
 
 func (o *Order) MarkConfirming(blockNum int, from, hash string, at time.Time, amount decimal.Decimal) error {
@@ -155,20 +159,32 @@ func (o *Order) MarkConfirming(blockNum int, from, hash string, at time.Time, am
 	o.RefHash = hash
 	o.RefBlockNum = blockNum
 	o.Status = OrderStatusConfirming
+
+	// 列级更新，避免 Save 重写 created_at（GORM 按 CreatedAt 字段名约定填充时间）
+	updates := map[string]any{
+		"from_address":  o.FromAddress,
+		"confirmed_at":  o.ConfirmedAt,
+		"ref_hash":      o.RefHash,
+		"ref_block_num": o.RefBlockNum,
+		"status":        o.Status,
+	}
 	if o.AddressLocked {
 		rate, _ := decimal.NewFromString(o.Rate)
 		o.Amount = amount.String()
 		o.Money = rate.Mul(amount).String()
+		updates["amount"] = o.Amount
+		updates["money"] = o.Money
 	}
 
-	return Db.Save(o).Error
+	return Db.Model(o).Updates(updates).Error
 }
 
 func (o *Order) SetNotifyState(state int) error {
 	o.NotifyNum += 1
 	o.NotifyState = state
 
-	return Db.Save(o).Error
+	// 列级更新，避免 Save 重写 created_at
+	return Db.Model(o).Updates(map[string]any{"notify_num": o.NotifyNum, "notify_state": o.NotifyState}).Error
 }
 
 func (o *Order) GetStatusLabel() string {
@@ -317,10 +333,15 @@ func (o *Order) GetMethods(crypto Crypto) []MethodItem {
 
 func (o *Order) Network() any {
 	type network struct {
-		Alias   string  `json:"alias"`
-		Name    string  `json:"name"`
-		Crypto  Crypto  `json:"crypto"`
-		Network Network `json:"network"`
+		Alias       string  `json:"alias"`
+		Name        string  `json:"name"`
+		Crypto      Crypto  `json:"crypto"`
+		Network     Network `json:"network"`
+		Native      bool    `json:"native"`                 // 是否原生币
+		Contract    string  `json:"contract,omitempty"`     // 代币合约；原生币为空
+		Decimals    int32   `json:"decimals"`               // 代币精度，前端金额编码使用
+		ChainId     int64   `json:"chain_id,omitempty"`     // EVM 链 ID，非 EVM 链为 0
+		ExplorerFmt string  `json:"explorer_fmt,omitempty"` // 交易链接格式化串，%s 为哈希
 	}
 
 	var net = network{}
@@ -333,8 +354,36 @@ func (o *Order) Network() any {
 	net.Alias = info.Alias
 	net.Crypto = info.Crypto
 	net.Network = info.Network
+	net.Native = info.Native
+	net.Contract = info.Contract
+	net.Decimals = int32(math.Abs(float64(info.Decimal))) // registry 内为负指数，对外统一正数
+	net.ChainId = evmChainId(info.Network)
+	net.ExplorerFmt = info.ExplorerFmt
 
 	return net
+}
+
+// evmChainId 返回 EVM 网络的 chainId；非 EVM 网络返回 0。
+// 收银台模板据此生成 EIP-681 与 wallet_switchEthereumChain 参数，避免前端硬编码。
+func evmChainId(network Network) int64 {
+	switch network {
+	case conf.Ethereum:
+		return 1
+	case conf.Bsc:
+		return 56
+	case conf.Polygon:
+		return 137
+	case conf.Arbitrum:
+		return 42161
+	case conf.Base:
+		return 8453
+	case conf.Xlayer:
+		return 196
+	case conf.Plasma:
+		return 9745
+	default:
+		return 0
+	}
 }
 
 func (o *Order) TableName() string {
@@ -381,7 +430,13 @@ func CalcTradeAmount(wallets []Wallet, rate decimal.Decimal, p OrderParams) (Wal
 	status := []int{OrderStatusConfirming, OrderStatusWaiting}
 	Db.Where("status in (?) and trade_type = ?", status, p.TradeType).Find(&orders)
 	for _, order := range orders {
-		lock[order.Address+order.Amount] = true
+		// 锁键必须与下方查询键一致使用 MatchAddress：TON USDT 的 MatchAddress 是 Jetton 钱包地址，
+		// 与 Address 不同，若用 Address 做锁键则金额唯一性失效，会产生同金额订单无法区分核销
+		key := order.Address
+		if order.MatchAddress != "" {
+			key = order.MatchAddress
+		}
+		lock[key+order.Amount] = true
 	}
 
 	atom, precision := GetAtomicity(p.TradeType)

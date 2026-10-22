@@ -38,7 +38,7 @@
 ### 🌟 目前支持收款网络
 
 🔥 主流网络：TRON Ethereum BSC Polygon<br>
-⚡ 其他网络： X-Layer Solana Aptos Arbitrum-One Base [完整列表](./docs/trade-type.md)
+⚡ 其他网络： X-Layer Solana Aptos Arbitrum-One Base Binance Pay [完整列表](./docs/trade-type.md)
 
 - ✅ 完全兼容 `Epusdt` 插件无缝替换
 - ️✅ 支持主流区块网络 不仅限于`USDT`
@@ -48,6 +48,7 @@
 - ✅ 原生兼容`易支付`收单 接入便捷
 - ✅ 地址独占模式 底层支持不定额收款
 - ✅ 支持MQTT消息发布 交易信息即时广播
+- ✅ 支持币安 Pay 收款 内部转账免手续费 金额打错可回填订单编号找回 [使用说明](./docs/binancepay.md)
 - ✅ 快速迭代期 超多实用特性功能等你发现
 
 ## 🚀 快捷启动
@@ -62,7 +63,7 @@ docker run -d --restart=unless-stopped -p 8080:8080 v03413/bepusdt:latest
 - 安装：[Docker](docs/docker/docker.md) [Linux](docs/linux/install.md) [1Panel](./docs/1panel/README.md) [宝塔](./docs/bt_panel/README.md)
 - 开发：[API对接](docs/api/api.md) [订单回调](docs/notify/readme.md) [Python](https://github.com/luoyanglang/bepusdt-python-sdk) [PHP](https://github.com/v03413/bepusdt-php-sdk)
 - 对接：[独角Next](docs/api/dujiao-next/dujiao-next.md) [彩虹易支付](https://github.com/v03413/Epay-BEpusdt) [whmcs](https://github.com/v03413/whmcs-gateway-epusdt) [其它](docs/api/other.md)
-- 其它：[https 配置](./docs/ssl.md) [时钟同步](docs/linux/systemd-timesyncd.md) [收银台修改](docs/checkout/README.md)
+- 其它：[https 配置](./docs/ssl.md) [时钟同步](docs/linux/systemd-timesyncd.md) [收银台修改](docs/checkout/README.md) [币安 Pay 收款](./docs/binancepay.md)
 
 ## 🖼 功能截图
 

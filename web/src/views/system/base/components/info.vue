@@ -88,9 +88,42 @@
             <a-input v-model="form.home_redirect_url" placeholder="主页跳转地址 留空则显示默认页面" allow-clear />
           </a-form-item>
 
+          <a-form-item
+            field="binancepay_api_key"
+            label="币安 Pay API Key"
+            extra="收款币安账号的只读 API Key（币安官网-管理API），留空则不启用币安 Pay 收款"
+          >
+            <a-input v-model="form.binancepay_api_key" placeholder="留空禁用币安 Pay" allow-clear />
+          </a-form-item>
+
+          <a-form-item
+            field="binancepay_api_secret"
+            label="币安 Pay API Secret"
+            extra="与上方 API Key 配对的 Secret，仅用于拉取 Pay 流水；显示 ****** 表示已保存，不改即保持原值"
+          >
+            <a-input-password v-model="form.binancepay_api_secret" placeholder="留空禁用币安 Pay" allow-clear />
+          </a-form-item>
+
+          <a-form-item
+            field="binancepay_api_base"
+            label="币安 Pay 接口地址"
+            extra="币安 API 基础地址，默认官方 https://api.binance.com，一般无需修改"
+          >
+            <a-input v-model="form.binancepay_api_base" placeholder="https://api.binance.com" allow-clear />
+          </a-form-item>
+
+          <a-form-item
+            field="binancepay_poll_second"
+            label="币安 Pay 轮询间隔"
+            extra="流水扫描间隔，单位秒；接口权重限制最低 10 秒，推荐 30"
+          >
+            <a-input v-model="form.binancepay_poll_second" placeholder="推荐 30" />
+          </a-form-item>
+
           <a-form-item>
             <a-space>
               <a-button type="primary" html-type="submit">提交</a-button>
+              <a-button type="outline" :loading="testLoading" @click="onTestBinancePay">测试币安 Pay 连接</a-button>
             </a-space>
           </a-form-item>
         </a-form>
@@ -102,7 +135,7 @@
 <script setup lang="ts">
 import { useDevicesSize } from "@/hooks/useDevicesSize";
 import { Message } from "@arco-design/web-vue";
-import { setsConfAPI } from "@/api/modules/conf/index";
+import { setsConfAPI, binancepayTestAPI } from "@/api/modules/conf/index";
 
 const emit = defineEmits(["refresh"]);
 const data = defineModel() as any;
@@ -118,7 +151,11 @@ const form = ref({
   payment_min_amount: "",
   payment_match_mode: "classic",
   home_redirect_url: "",
-  payment_lookback_hour: ""
+  payment_lookback_hour: "",
+  binancepay_api_key: "",
+  binancepay_api_secret: "",
+  binancepay_api_base: "",
+  binancepay_poll_second: ""
 });
 const rules = {
   block_height_max_diff: [
@@ -175,6 +212,25 @@ const rules = {
       message: "金额匹配模式不能为空"
     }
   ],
+  binancepay_poll_second: [
+    {
+      validator: (value: string, callback: (error?: string) => void) => {
+        if (!value) {
+          callback();
+          return;
+        }
+        const num = Number(value);
+        // 币安接口单次权重 3000，轮询过低会触发限流
+        if (!Number.isInteger(num) || num <= 0) {
+          callback("币安 Pay 轮询间隔必须为正整数");
+        } else if (num < 10) {
+          callback("币安 Pay 轮询间隔不能低于 10 秒（币安接口权重限制）");
+        } else {
+          callback();
+        }
+      }
+    }
+  ],
   payment_lookback_hour: [
     {
       required: true,
@@ -193,6 +249,24 @@ const rules = {
   ]
 };
 
+const testLoading = ref(false);
+// 测试币安 Pay 连接：用已保存的配置拉一次流水；失败(400)由 axios 拦截器统一弹错
+const onTestBinancePay = async () => {
+  testLoading.value = true;
+  try {
+    const response = await binancepayTestAPI({});
+    if (response?.code === 200) {
+      Message.success(response?.msg || "连接成功");
+    } else {
+      Message.error(response?.msg || "连接失败");
+    }
+  } catch (e) {
+    // 拦截器已提示错误信息
+  } finally {
+    testLoading.value = false;
+  }
+};
+
 const onSubmit = async ({ errors }: ArcoDesign.ArcoSubmit) => {
   if (errors) return;
 
@@ -205,7 +279,11 @@ const onSubmit = async ({ errors }: ArcoDesign.ArcoSubmit) => {
     { key: "payment_timeout", value: form.value.payment_timeout },
     { key: "payment_match_mode", value: form.value.payment_match_mode },
     { key: "home_redirect_url", value: form.value.home_redirect_url },
-    { key: "payment_lookback_hour", value: form.value.payment_lookback_hour }
+    { key: "payment_lookback_hour", value: form.value.payment_lookback_hour },
+    { key: "binancepay_api_key", value: form.value.binancepay_api_key },
+    { key: "binancepay_api_secret", value: form.value.binancepay_api_secret },
+    { key: "binancepay_api_base", value: form.value.binancepay_api_base },
+    { key: "binancepay_poll_second", value: form.value.binancepay_poll_second }
   ]);
 
   Message.success("保存成功");
@@ -225,6 +303,10 @@ watch(
     form.value.payment_match_mode = data.value.payment_match_mode || "classic";
     form.value.home_redirect_url = data.value.home_redirect_url || "";
     form.value.payment_lookback_hour = data.value.payment_lookback_hour || "";
+    form.value.binancepay_api_key = data.value.binancepay_api_key || "";
+    form.value.binancepay_api_secret = data.value.binancepay_api_secret || "";
+    form.value.binancepay_api_base = data.value.binancepay_api_base || "";
+    form.value.binancepay_poll_second = data.value.binancepay_poll_second || "";
   }
 );
 </script>

@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"github.com/shopspring/decimal"
 	"github.com/spf13/cast"
 	"github.com/tidwall/gjson"
 	"github.com/v03413/bepusdt/app"
@@ -171,6 +172,23 @@ func nonOrderTransferTitle(trans model.TronTransfer, wa model.Wallet) string {
 	}
 
 	return "支出"
+}
+
+// UnmatchedPayIncome 币安 Pay 收到未匹配任何订单的入账（金额打错、过期后付款等），提醒人工处理
+func (t *Telegram) UnmatchedPayIncome(currency string, amount decimal.Decimal, txnID, payer string, at time.Time) {
+	text := fmt.Sprintf(
+		"\\#账户收入 \\#无主入账 \\#"+strings.ToUpper(currency)+"\n\\-\\-\\-\n```\n💲入账数额：%v %s\n💍交易类别：币安 Pay\n⏱️到账时间：%v\n🅾️付款方：%v\n🔢流水编号：%s```\n⚠️ 该笔入账未匹配到任何订单，请人工核对处理\n",
+		amount.String(),
+		currency,
+		at.Format(time.DateTime),
+		payer,
+		txnID,
+	)
+
+	t.sendMessage(&bot.SendMessageParams{
+		Text:      text,
+		ParseMode: models.ParseModeMarkdown,
+	})
 }
 
 func (t *Telegram) TronResourceChange(res model.TronResource) {

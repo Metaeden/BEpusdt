@@ -54,6 +54,8 @@ const (
 	PaymentSupportUrl   ConfKey = "payment_support_url"   // 订单支付客服链接
 	PaymentLookbackHour ConfKey = "payment_lookback_hour" // 订单回溯时间
 	PaymentNetworkSort  ConfKey = "payment_network_sort"  // 收银台网络顺序，逗号分隔
+	PaymentCurrencySort ConfKey = "payment_currency_sort" // 收银台币种顺序，逗号分隔
+	PaymentRecommend    ConfKey = "payment_recommend"     // 收银台推荐标记的网络，逗号分隔，为空则不显示
 
 	RpcEndpointPlasma         ConfKey = "rpc_endpoint_plasma"            // Plasma RPC节点
 	RpcEndpointBsc            ConfKey = "rpc_endpoint_bsc"               // BSC RPC节点
@@ -87,6 +89,11 @@ const (
 
 	NotifierParams  ConfKey = "notifier_params"  // 通知参数 (token, chat_id, email
 	NotifierChannel ConfKey = "notifier_channel" // 通知渠道 (telegram, wechat, email
+
+	BinancePayApiKey     ConfKey = "binancepay_api_key"     // 币安 Pay 只读 API Key
+	BinancePayApiSecret  ConfKey = "binancepay_api_secret"  // 币安 Pay API Secret
+	BinancePayApiBase    ConfKey = "binancepay_api_base"    // 币安 API 地址
+	BinancePayPollSecond ConfKey = "binancepay_poll_second" // 币安 Pay 流水轮询间隔，单位秒
 
 	SystemInstallLock ConfKey = "system_install_lock" // 系统安装锁
 	HomeRedirectUrl   ConfKey = "home_redirect_url"

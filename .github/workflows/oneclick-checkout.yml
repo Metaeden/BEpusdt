@@ -1,0 +1,31 @@
+name: OneClick Checkout
+
+on:
+  push:
+    paths:
+      - 'static/checkout/oneclick/**'
+      - '.github/workflows/oneclick-checkout.yml'
+  pull_request:
+    paths:
+      - 'static/checkout/oneclick/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Unit tests
+        working-directory: static/checkout/oneclick/assets/js
+        run: node --test
+
+      - name: Syntax check all modules
+        working-directory: static/checkout/oneclick/assets/js
+        run: |
+          for f in *.js; do
+            node --check "$f"
+          done

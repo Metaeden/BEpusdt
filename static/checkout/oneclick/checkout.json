@@ -1,0 +1,6 @@
+{
+  "name": "OneClick 一键支付",
+  "author": "payusdt",
+  "desc": "一键拉起钱包插件付款：EVM(EIP-1193/EIP-681)、Tron、Solana、TON。无钱包时自动降级为扫码/复制。",
+  "link": "https://github.com/v03413/BEpusdt"
+}
