@@ -48,6 +48,7 @@ var defaultConf = map[ConfKey]string{
 	PaymentSupportUrl:       "",
 	PaymentLookbackHour:     "3",
 	PaymentNetworkSort:      "",
+	PaymentCurrencySort:     "",
 	SystemInstallLock:       "0",
 	RateSyncCoingeckoApiUrl: "https://api.coingecko.com",
 	RateSyncHistoryDays:     "30",

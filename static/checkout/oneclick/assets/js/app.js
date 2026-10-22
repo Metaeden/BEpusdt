@@ -40,6 +40,7 @@ const state = {
   // 支付方式选择（订单尚未确定 trade_type 时）
   methods: [],
   networkSort: '',
+  currencySort: '',
   selCurrency: '',
   selMethod: null,
 };
@@ -374,6 +375,7 @@ async function showSelect(order) {
     const data = await payMethods(order.trade_id);
     state.methods = Array.isArray(data.methods) ? data.methods : [];
     state.networkSort = String(data.network_sort || '');
+    state.currencySort = String(data.currency_sort || '');
   } catch (e) {
     const st = $('selectStatus');
     st.textContent = t('selectFailed') + (e.message ? ': ' + e.message : '');
@@ -388,14 +390,21 @@ async function showSelect(order) {
     return;
   }
 
-  // 币种去重
-  const currencies = [...new Set(state.methods.map((m) => m.currency))];
+  // 币种去重，并按商户配置的币种排序（未配置的排末尾）
+  const parseSort = (raw) => (raw ? raw.split(',').map((s) => s.trim()).filter(Boolean) : []);
+  const currencyOrder = parseSort(state.currencySort);
+  const currencyRank = (c) => {
+    const i = currencyOrder.indexOf(c);
+    return i === -1 ? currencyOrder.length : i;
+  };
+  const currencies = [...new Set(state.methods.map((m) => m.currency))].sort((a, b) => {
+    const d = currencyRank(a) - currencyRank(b);
+    return d !== 0 ? d : a.localeCompare(b);
+  });
   state.selCurrency = currencies[0];
 
   // 商户配置的网络排序（逗号分隔）优先，未配置保持后端默认顺序
-  const sortList = state.networkSort
-    ? state.networkSort.split(',').map((s) => s.trim()).filter(Boolean)
-    : [];
+  const sortList = parseSort(state.networkSort);
   const sortRank = (m) => {
     const i = sortList.indexOf(m.network);
     return i === -1 ? sortList.length : i;

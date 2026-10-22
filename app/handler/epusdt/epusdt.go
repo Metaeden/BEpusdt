@@ -174,6 +174,8 @@ func (Epusdt) CreateOrder(ctx *gin.Context) {
 		"expiration_time": uint64(order.ExpiredAt.Sub(time.Now()).Seconds()),
 		"payment_url":     model.CheckoutUrl(host, order.TradeId),
 		"network":         order.GetMethods(""),
+		"network_sort":    model.GetC(model.PaymentNetworkSort),
+		"currency_sort":   model.GetC(model.PaymentCurrencySort),
 		"reselect":        order.CanReselectPayment(),
 	}))
 }
@@ -390,8 +392,9 @@ func (Epusdt) GetMethods(ctx *gin.Context) {
 	}
 
 	ctx.JSON(200, respSuccJson(gin.H{
-		"methods":      order.GetMethods(model.Crypto(req.Currency)),
-		"network_sort": model.GetC(model.PaymentNetworkSort),
+		"methods":       order.GetMethods(model.Crypto(req.Currency)),
+		"network_sort":  model.GetC(model.PaymentNetworkSort),
+		"currency_sort": model.GetC(model.PaymentCurrencySort),
 	}))
 }
 
