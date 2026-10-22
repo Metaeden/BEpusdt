@@ -32,7 +32,7 @@
                 <div class="side-fiat" id="amountFiat"></div>
 
                 <dl class="side-lines">
-                    <div class="side-line">
+                    <div class="side-line" id="payMethodLine">
                         <dt data-i18n="payMethod">支付方式</dt>
                         <dd class="side-method">
                             <span class="network-pill" id="networkPill" hidden></span>
@@ -69,17 +69,15 @@
 
             <!-- 选择支付方式（新订单尚未确定 trade_type 时显示） -->
             <section id="stateSelect" hidden>
-                <div class="pane-head">
-                    <h2 class="pane-title" data-i18n="selectTitle">选择支付方式</h2>
-                    <p class="pane-sub" id="selectCryptoHint" data-i18n="selectHint">选择支付方式</p>
-                </div>
-
-                <div class="method-group">
-                    <div class="method-head">
-                        <span class="method-label" data-i18n="currency">币种</span>
-                        <span class="method-note" data-i18n="currencyNote">选择您要支付的币种</span>
+                <div class="pane-head pay-head">
+                    <div class="pay-head-due">
+                        <span class="pay-head-label" id="dueLabel" data-i18n="payCrypto">用 {cur} 支付</span>
+                        <span class="pay-head-amount" id="dueCrypto">--</span>
+                        <span class="pay-head-net" id="dueNet"></span>
                     </div>
-                    <div class="chips" id="currencyChips" role="radiogroup"></div>
+                    <div class="pay-head-cur">
+                        <div class="chips" id="currencyChips" role="radiogroup"></div>
+                    </div>
                 </div>
 
                 <div class="method-group">

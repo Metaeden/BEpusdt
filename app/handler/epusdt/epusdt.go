@@ -176,6 +176,7 @@ func (Epusdt) CreateOrder(ctx *gin.Context) {
 		"network":         order.GetMethods(""),
 		"network_sort":    model.GetC(model.PaymentNetworkSort),
 		"currency_sort":   model.GetC(model.PaymentCurrencySort),
+		"recommend":       model.GetC(model.PaymentRecommend),
 		"reselect":        order.CanReselectPayment(),
 	}))
 }
@@ -395,6 +396,7 @@ func (Epusdt) GetMethods(ctx *gin.Context) {
 		"methods":       order.GetMethods(model.Crypto(req.Currency)),
 		"network_sort":  model.GetC(model.PaymentNetworkSort),
 		"currency_sort": model.GetC(model.PaymentCurrencySort),
+		"recommend":     model.GetC(model.PaymentRecommend),
 	}))
 }
 

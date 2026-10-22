@@ -41,6 +41,7 @@ const state = {
   methods: [],
   networkSort: '',
   currencySort: '',
+  recommend: '',
   selCurrency: '',
   selMethod: null,
 };
@@ -96,7 +97,7 @@ const STRINGS = {
     poweredBy: 'Powered by',
     currency: '币种',
     networkLabel: '网络',
-    amountDue: '应付金额',
+    payCrypto: '用 {cur} 支付',
     selectHint: '选择支付方式',
     currencyNote: '选择您要支付的币种',
     networkNote: '务必与钱包网络一致',
@@ -169,7 +170,7 @@ const STRINGS = {
     poweredBy: 'Powered by',
     currency: 'Currency',
     networkLabel: 'Network',
-    amountDue: 'Amount due',
+    payCrypto: 'Pay with {cur}',
     selectHint: 'Choose how to pay',
     currencyNote: 'Pick the coin you want to pay with',
     networkNote: 'Must match your wallet network',
@@ -276,6 +277,7 @@ function renderOrder(order) {
   }
   pill.appendChild(document.createTextNode(netLabel));
   pill.hidden = false;
+  $('payMethodLine').hidden = false;
   $('addressText').textContent = order.token;
   $('amountText').textContent = order.actual_amount;
   $('orderNo').textContent = order.order_id;
@@ -357,10 +359,13 @@ async function showSelect(order) {
   $('amountCrypto').textContent = `${order.money}`;
   $('amountSymbol').textContent = order.fiat;
   $('amountFiat').textContent = '';
+  // 还没选定网络，侧栏不显示空的「支付方式」行，避免出现只有标题的空行
+  $('payMethodLine').hidden = true;
   $('networkPill').hidden = true;
   $('sideName').textContent = order.name || '--';
   $('orderNo').textContent = order.order_id;
-  $('selectCryptoHint').textContent = t('selectHint');
+  $('dueCrypto').textContent = '--';
+  $('dueNet').textContent = t('selectHint');
   $('reselectBtn').hidden = true;
   startCountdown(order.expired_at);
 
@@ -376,6 +381,7 @@ async function showSelect(order) {
     state.methods = Array.isArray(data.methods) ? data.methods : [];
     state.networkSort = String(data.network_sort || '');
     state.currencySort = String(data.currency_sort || '');
+    state.recommend = String(data.recommend || '');
   } catch (e) {
     const st = $('selectStatus');
     st.textContent = t('selectFailed') + (e.message ? ': ' + e.message : '');
@@ -413,23 +419,26 @@ async function showSelect(order) {
 
   const defaultFor = (cur) => inOrder(state.methods.filter((m) => m.currency === cur))[0] || null;
 
+  // 后台勾选标记为「推荐」的网络（小写匹配），未配置时为空数组，即不显示任何标记
+  const recommendList = parseSort(state.recommend).map((s) => s.toLowerCase());
+
   // 默认预选排序第一的网络，页面落地即可支付（少一次点击）
   state.selMethod = defaultFor(state.selCurrency);
 
+  // 金额只在左上角大字出现一次，各通道卡片与币种按钮都不重复
+  // 左上角应付金额 + 当前通道；右侧币种按钮只做切换
   const syncHero = () => {
-    if (state.selMethod) {
-      $('selectCryptoHint').textContent =
-        `${state.selMethod.actual_amount} ${state.selMethod.currency} · ${state.selMethod.token_net_name || state.selMethod.network}`;
-    } else {
-      $('selectCryptoHint').textContent = t('selectHint');
-    }
+    const m = state.selMethod;
+    const cur = m ? m.currency : state.selCurrency;
+    $('dueCrypto').textContent = m ? m.actual_amount : '--';
+    $('dueLabel').textContent = t('payCrypto').replace('{cur}', cur);
+    $('dueNet').textContent = m ? `${m.token_net_name || m.network}` : t('selectHint');
   };
 
+  // 按钮保持纯文案，金额只在左上角出现
   const syncBtn = () => {
     btn.disabled = !state.selMethod;
-    btnLabel.textContent = state.selMethod
-      ? `${t('continuePay')} · ${state.selMethod.actual_amount} ${state.selMethod.currency}`
-      : t('continuePay');
+    btnLabel.textContent = t('continuePay');
     syncHero();
   };
 
@@ -442,6 +451,7 @@ async function showSelect(order) {
       chip.setAttribute('role', 'radio');
       chip.setAttribute('aria-checked', String(c === state.selCurrency));
       chip.textContent = c;
+
       chip.addEventListener('click', () => {
         state.selCurrency = c;
         state.selMethod = defaultFor(c);
@@ -478,16 +488,14 @@ async function showSelect(order) {
       const name = document.createElement('span');
       name.className = 'net-name';
       name.textContent = m.token_net_name || m.network;
-      const sub = document.createElement('span');
-      sub.className = 'net-sub';
-      sub.textContent = `${m.actual_amount} ${m.currency}`;
-      body.append(name, sub);
+      body.append(name);
 
       const mark = document.createElement('span');
       mark.className = 'net-mark';
       mark.setAttribute('aria-hidden', 'true');
 
-      if (String(m.network || '').toLowerCase() === 'binancepay') {
+      // 「推荐」标记由商户在后台指定，默认不显示任何标记
+      if (recommendList.includes(String(m.network || '').toLowerCase())) {
         const badge = document.createElement('span');
         badge.className = 'rec-badge';
         badge.textContent = t('recommend');
@@ -497,6 +505,7 @@ async function showSelect(order) {
       }
       card.addEventListener('click', () => {
         state.selMethod = m;
+        renderCurrencies();
         renderNetworks();
         syncBtn();
       });

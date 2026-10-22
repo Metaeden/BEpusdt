@@ -106,6 +106,7 @@ const getConf = async () => {
         "payment_checkout",
         "payment_network_sort",
         "payment_currency_sort",
+        "payment_recommend",
         "payment_timeout",
         "payment_lookback_hour",
         "notifier_params",

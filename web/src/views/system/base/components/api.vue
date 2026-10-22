@@ -68,6 +68,25 @@
             </div>
           </a-form-item>
 
+          <a-form-item
+            field="payment_recommend"
+            label="推荐网络"
+            extra="前台收银台中被标记为「推荐」的网络，可多选；默认不标记任何网络。"
+          >
+            <a-select
+              v-model="recommendList"
+              placeholder="不标记任何网络"
+              multiple
+              allow-clear
+              :fallback-option="false"
+              :max-tag-count="4"
+            >
+              <a-option v-for="option in networkOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </a-option>
+            </a-select>
+          </a-form-item>
+
           <a-form-item>
             <a-space>
               <a-button type="primary" html-type="submit">提交</a-button>
@@ -121,13 +140,16 @@ const form = ref({
   payment_checkout: "",
   payment_support_url: "",
   payment_network_sort: "",
-  payment_currency_sort: ""
+  payment_currency_sort: "",
+  payment_recommend: ""
 });
 const rules = {};
 const checkoutList = ref<Array<{ label: string; value: string; author: string; desc: string; link: string }>>([]);
 const checkoutListLoading = ref(false);
 const networkSortVisible = ref(false);
 const currencySortVisible = ref(false);
+// 「推荐」标记的网络列表（数组），落库时转成逗号分隔字符串
+const recommendList = ref<string[]>([]);
 
 const normalizePaymentCheckout = (value?: string) => {
   const rawValue = value || "";
@@ -180,6 +202,10 @@ const syncFormFromConfig = () => {
   form.value.payment_support_url = data.value.payment_support_url || "";
   form.value.payment_network_sort = data.value.payment_network_sort || "";
   form.value.payment_currency_sort = data.value.payment_currency_sort || "";
+  form.value.payment_recommend = data.value.payment_recommend || "";
+  // 只保留当前仍可用的网络，避免删掉通道后残留脏值
+  const valid = networkOptions.value.map((o: SortOption) => o.value);
+  recommendList.value = form.value.payment_recommend.split(",").map(s => s.trim()).filter(key => valid.includes(key));
 };
 
 // 获取收银台模板列表
@@ -252,6 +278,10 @@ const onSubmit = async ({ errors }: ArcoDesign.ArcoSubmit) => {
     {
       key: "payment_currency_sort",
       value: form.value.payment_currency_sort
+    },
+    {
+      key: "payment_recommend",
+      value: recommendList.value.join(",")
     }
   ]);
 

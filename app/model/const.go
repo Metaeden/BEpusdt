@@ -55,6 +55,7 @@ const (
 	PaymentLookbackHour ConfKey = "payment_lookback_hour" // 订单回溯时间
 	PaymentNetworkSort  ConfKey = "payment_network_sort"  // 收银台网络顺序，逗号分隔
 	PaymentCurrencySort ConfKey = "payment_currency_sort" // 收银台币种顺序，逗号分隔
+	PaymentRecommend    ConfKey = "payment_recommend"     // 收银台推荐标记的网络，逗号分隔，为空则不显示
 
 	RpcEndpointPlasma         ConfKey = "rpc_endpoint_plasma"            // Plasma RPC节点
 	RpcEndpointBsc            ConfKey = "rpc_endpoint_bsc"               // BSC RPC节点
