@@ -744,6 +744,9 @@ function showError(message) {
 function startCountdown(expiredAt) {
   state.expiresAt = Number(expiredAt) * 1000;
   state.expiredShown = false;
+  // 环形进度需要订单创建时间作为进度基准
+  const created = state.order && state.order.created_at ? Number(state.order.created_at) * 1000 : 0;
+  state.countdownTotal = Math.max(state.expiresAt - created, 1);
   updateCountdown();
   if (state.countdownTimer) clearInterval(state.countdownTimer);
   state.countdownTimer = setInterval(updateCountdown, 1000);
@@ -771,7 +774,10 @@ function updateCountdown() {
     const ms = state.expiresAt - Date.now();
     if (ms <= 0) {
       el.textContent = '00:00';
-      if (wrap) wrap.classList.add('is-urgent');
+      if (wrap) {
+        wrap.classList.add('is-urgent');
+        wrap.style.setProperty('--left', '0');
+      }
       expiredTick();
       continue;
     }
@@ -782,7 +788,15 @@ function updateCountdown() {
     el.textContent = h > 0
       ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
       : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    if (wrap) wrap.classList.toggle('is-urgent', ms < 5 * 60 * 1000);
+    if (wrap) {
+      // 剩余比例驱动环形进度
+      const left = Math.min(Math.max(ms / state.countdownTotal, 0), 1);
+      wrap.style.setProperty('--left', String(left.toFixed(4)));
+      // 三档：正常 -> 5 分钟内琥珀 -> 1 分钟内红色呼吸
+      const urgent = ms < 60 * 1000;
+      wrap.classList.toggle('is-urgent', urgent);
+      wrap.classList.toggle('is-warn', !urgent && ms < 5 * 60 * 1000);
+    }
   }
 }
 

@@ -17,6 +17,11 @@
             <header class="side-brand">
                 <span class="side-logo" aria-hidden="true"></span>
                 <span data-i18n="brand">OneClick Pay</span>
+                <span class="side-timer" id="timer" aria-live="polite">
+                    <span class="timer-ring" aria-hidden="true"></span>
+                    <span class="timer-label" data-i18n="timeLeft">剩余</span>
+                    <span class="timer-value" id="timerValue">--:--</span>
+                </span>
             </header>
             <div class="side-body">
                 <div class="side-label" data-i18n="amountDue">应付金额</div>
@@ -43,10 +48,6 @@
                         <dd class="side-order" id="orderNo">--</dd>
                     </div>
                 </dl>
-            </div>
-            <div class="side-timer timer" id="timer" aria-live="polite">
-                <span class="timer-label" data-i18n="timeLeft">剩余</span>
-                <span class="timer-value" id="timerValue">--:--</span>
             </div>
         </aside>
 
