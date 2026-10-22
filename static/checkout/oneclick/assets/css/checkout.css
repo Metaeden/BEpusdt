@@ -237,7 +237,7 @@ html, body {
 .network-pill .net-glyph-img { width: 14px; height: 14px; }
 
 /* Countdown pill: prominent badge in the side header.
-   Three urgency tiers driven by --left (0..1) + .is-urgent from JS. */
+   Urgency tiers driven by --left (0..1) + .is-warn/.is-urgent/.is-expired from JS. */
 .side-timer {
   position: relative;
   margin-left: auto;
@@ -250,7 +250,7 @@ html, body {
   font-size: 12.5px;
   color: #aab4cc;
   font-feature-settings: "tnum" 1;
-  transition: border-color .3s, background .3s, color .3s, box-shadow .3s;
+  transition: border-color .3s, background .3s, color .3s, box-shadow .3s, opacity .5s;
 }
 .side-timer .timer-label { font-size: 11.5px; color: #8c96b0; }
 .side-timer .timer-value {
@@ -294,6 +294,18 @@ html, body {
   0%, 100% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), 0 0 14px -4px rgba(248, 113, 113, .45); }
   50% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), 0 0 26px -2px rgba(248, 113, 113, .8); }
 }
+
+/* Tier 4: expired -> static and faded, no more animation */
+.side-timer.is-expired {
+  animation: none;
+  opacity: .45;
+  border-color: rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .05);
+  box-shadow: none;
+}
+.side-timer.is-expired .timer-label,
+.side-timer.is-expired .timer-value { color: #aab4cc; }
+.side-timer.is-expired .timer-ring { background: rgba(255, 255, 255, .18); }
 
 /* ---------- Action pane (right) ---------- */
 

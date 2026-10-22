@@ -767,6 +767,8 @@ function showError(message) {
 function startCountdown(expiredAt) {
   state.expiresAt = Number(expiredAt) * 1000;
   state.expiredShown = false;
+  // 新一轮倒计时清掉上一单遗留的过期样式
+  document.querySelectorAll('.side-timer').forEach((el) => el.classList.remove('is-expired'));
   // 环形进度需要订单创建时间作为进度基准
   const created = state.order && state.order.created_at ? Number(state.order.created_at) * 1000 : 0;
   state.countdownTotal = Math.max(state.expiresAt - created, 1);
@@ -798,7 +800,9 @@ function updateCountdown() {
     if (ms <= 0) {
       el.textContent = '00:00';
       if (wrap) {
-        wrap.classList.add('is-urgent');
+        // 已过期：静止、整体变淡，不再红色呼吸
+        wrap.classList.remove('is-urgent', 'is-warn');
+        wrap.classList.add('is-expired');
         wrap.style.setProperty('--left', '0');
       }
       expiredTick();
