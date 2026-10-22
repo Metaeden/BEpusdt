@@ -96,7 +96,8 @@ const STRINGS = {
     amountChanged: '支付金额已更新，请重新确认',
     poweredBy: 'Powered by',
     currency: '币种',
-    networkLabel: '网络',
+    networkLabel: '网络/支付方式',
+    amountDue: '应付金额',
     payCrypto: '用 {cur} 支付',
     selectHint: '选择支付方式',
     currencyNote: '选择您要支付的币种',
@@ -169,7 +170,8 @@ const STRINGS = {
     amountChanged: 'Payment amount updated, please review again',
     poweredBy: 'Powered by',
     currency: 'Currency',
-    networkLabel: 'Network',
+    networkLabel: 'Network / payment method',
+    amountDue: 'Amount due',
     payCrypto: 'Pay with {cur}',
     selectHint: 'Choose how to pay',
     currencyNote: 'Pick the coin you want to pay with',
@@ -511,6 +513,9 @@ async function showSelect(order) {
       });
       netBox.appendChild(card);
     }
+    // 网络多时列表内部滚动，确保选中项可见（默认预选的第一项可能在折叠区外）
+    const selCard = netBox.querySelector('[aria-checked="true"]');
+    if (selCard) selCard.scrollIntoView({ block: 'nearest' });
   };
 
   renderCurrencies();
